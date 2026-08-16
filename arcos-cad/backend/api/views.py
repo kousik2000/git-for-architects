@@ -59,3 +59,28 @@ def convert_dwg(request):
             {"code": "CONVERTER_UNAVAILABLE", "message": f"Could not reach CAD converter API: {str(e)}"},
             status=503
         )
+
+@api_view(['POST'])
+def parse_dwg(request):
+    """
+    Accepts a DWG file, converts it to DXF using the CAD Converter API,
+    and parses the result into ARCOS CAD JSON using ezdxf.
+    """
+    from cad.services.cad_processing import process_dwg_to_arcos_json, CADProcessingError
+    
+    if 'file' not in request.FILES:
+        return Response({"code": "FILE_REQUIRED", "message": "A DWG file is required."}, status=400)
+        
+    uploaded_file = request.FILES['file']
+    filename = uploaded_file.name or ""
+    
+    if not filename.lower().endswith(".dwg"):
+        return Response({"code": "UNSUPPORTED_FILE_TYPE", "message": "Only DWG files are supported."}, status=400)
+        
+    try:
+        json_data = process_dwg_to_arcos_json(uploaded_file, filename)
+        return Response({"success": True, "data": json_data})
+    except CADProcessingError as e:
+        return Response({"code": "PROCESSING_ERROR", "message": str(e)}, status=500)
+    except Exception as e:
+        return Response({"code": "INTERNAL_ERROR", "message": f"An unexpected error occurred: {str(e)}"}, status=500)
