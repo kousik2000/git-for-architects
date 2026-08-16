@@ -28,10 +28,14 @@ def convert_dwg(request):
     converter_url = f"{settings.CAD_CONVERTER_URL}/convert"
     
     try:
+        print(f"\n[Django] Forwarding '{filename}' to CAD Converter at: {converter_url}")
+        
         # We forward the file to the fastAPI converter
         files = {'file': (filename, uploaded_file.file, uploaded_file.content_type)}
         
         response = requests.post(converter_url, files=files, stream=True)
+        
+        print(f"[Django] Received response from CAD Converter: HTTP {response.status_code}")
         
         if response.status_code == 200:
             # We stream the file back to the client
@@ -50,6 +54,7 @@ def convert_dwg(request):
             return Response(error_data, status=response.status_code)
             
     except requests.exceptions.RequestException as e:
+        print(f"[Django] ERROR: Failed to reach CAD Converter at {converter_url}. Exception: {str(e)}")
         return Response(
             {"code": "CONVERTER_UNAVAILABLE", "message": f"Could not reach CAD converter API: {str(e)}"},
             status=503

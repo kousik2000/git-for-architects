@@ -25,6 +25,11 @@ def cleanup_temp_dir(dir_path: str):
     if os.path.exists(dir_path):
         shutil.rmtree(dir_path, ignore_errors=True)
 
+@app.get("/")
+def root():
+    """Root endpoint for basic verification."""
+    return JSONResponse(content={"service": "arcos-cad-converter", "status": "running", "message": "Please use the /convert endpoint for file conversion."})
+
 @app.get("/health", response_model=HealthResponse)
 def health_check():
     """Verify service health and LibreDWG availability."""
