@@ -181,12 +181,14 @@ class ArcosDxfParser:
         
         if entity.dxftype() == 'LWPOLYLINE':
             closed = entity.closed
-            for point in entity.get_points(format='xy'):
-                vertices.append([point[0], point[1], 0.0])
+            for point in entity.get_points(format='xyb'):
+                # point is (x, y, bulge)
+                vertices.append([point[0], point[1], 0.0, point[2]])
         elif entity.dxftype() == 'POLYLINE':
             closed = entity.is_closed
             for vertex in entity.vertices:
-                vertices.append([vertex.dxf.location.x, vertex.dxf.location.y, vertex.dxf.location.z])
+                bulge = getattr(vertex.dxf, 'bulge', 0.0)
+                vertices.append([vertex.dxf.location.x, vertex.dxf.location.y, vertex.dxf.location.z, bulge])
                 
         props["geometry"] = {
             "vertices": vertices,

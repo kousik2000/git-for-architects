@@ -5,6 +5,8 @@ import { FileUploader } from './components/FileUploader';
 import { ConversionStatus } from './components/ConversionStatus';
 import { DownloadResult } from './components/DownloadResult';
 import { ConfigModal } from './components/ConfigModal';
+import { CadViewer } from './components/cad-viewer/CadViewer';
+import type { ArcosCadDocument } from './types/cad-json';
 import './App.css';
 
 function App() {
@@ -12,6 +14,8 @@ function App() {
   const [state, setState] = useState<ConversionState>('IDLE');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [resultBlob, setResultBlob] = useState<Blob | null>(null);
+  const [cadDoc, setCadDoc] = useState<ArcosCadDocument | null>(null);
+  const [isViewerOpen, setIsViewerOpen] = useState(false);
   const [isConfigOpen, setIsConfigOpen] = useState(false);
 
   const handleFileSelect = (selectedFile: File) => {
@@ -27,8 +31,6 @@ function App() {
     setErrorMsg(null);
 
     try {
-      // Small simulated delay to show uploading state before processing
-      // In a real app with progress events, this would be driven by XMLHttpRequest or similar
       setTimeout(() => {
         if (state === 'UPLOADING') {
           setState('CONVERTING');
@@ -36,7 +38,6 @@ function App() {
       }, 800);
 
       const blob = await cadApi.convertDwg(file);
-      
       setResultBlob(blob);
       setState('COMPLETED');
     } catch (err) {
@@ -49,11 +50,49 @@ function App() {
     }
   };
 
+  const handleParse = async () => {
+    if (!file) return;
+
+    setState('UPLOADING');
+    setErrorMsg(null);
+
+    try {
+      setTimeout(() => {
+        if (state === 'UPLOADING') {
+          setState('CONVERTING');
+        }
+      }, 800);
+      
+      if (file.name.toLowerCase().endsWith('.json')) {
+        const text = await file.text();
+        const jsonResponse = JSON.parse(text);
+        setCadDoc(jsonResponse.data || jsonResponse);
+        setIsViewerOpen(true);
+        setState('COMPLETED');
+        return;
+      }
+
+      const data = await cadApi.parseDwg(file);
+      setCadDoc(data);
+      setIsViewerOpen(true);
+      setState('COMPLETED');
+    } catch (err) {
+      setState('ERROR');
+      if (err instanceof CadApiError) {
+        setErrorMsg(err.message);
+      } else {
+        setErrorMsg('An unexpected error occurred during parsing.');
+      }
+    }
+  };
+
   const handleReset = () => {
     setFile(null);
     setState('IDLE');
     setErrorMsg(null);
     setResultBlob(null);
+    setCadDoc(null);
+    setIsViewerOpen(false);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -66,11 +105,19 @@ function App() {
 
   const isProcessing = state === 'UPLOADING' || state === 'CONVERTING';
 
+  if (isViewerOpen && cadDoc) {
+    return (
+      <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
+        <CadViewer document={cadDoc} onClose={handleReset} />
+      </div>
+    );
+  }
+
   return (
     <div className="app-container">
       <header className="app-header">
         <h1 className="logo-text">ARCOS CAD</h1>
-        <h2 className="subtitle">DWG → DXF Converter</h2>
+        <h2 className="subtitle">DWG → DXF Converter & Viewer</h2>
         <button 
           className="config-btn" 
           onClick={() => setIsConfigOpen(true)}
@@ -108,6 +155,14 @@ function App() {
                   aria-label="Convert"
                 >
                   Convert
+                </button>
+                <button 
+                  onClick={handleParse} 
+                  className="btn secondary-btn"
+                  style={{ background: '#3498db', color: 'white' }}
+                  aria-label="View CAD"
+                >
+                  View CAD
                 </button>
                 <button 
                   onClick={handleReset} 

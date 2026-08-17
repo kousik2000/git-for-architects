@@ -3,8 +3,10 @@ export const getApiBaseUrl = () => {
 };
 
 export class CadApiError extends Error {
-  constructor(public code: string, message: string) {
+  code: string;
+  constructor(code: string, message: string) {
     super(message);
+    this.code = code;
     this.name = 'CadApiError';
   }
 }
@@ -60,6 +62,58 @@ export const cadApi = {
         throw error;
       }
       // Map native fetch network errors
+      throw new CadApiError('NETWORK_ERROR', 'Unable to connect to the ARCOS backend. Please ensure the server is running.');
+    }
+  },
+
+  /**
+   * Uploads a DWG file to be parsed into ARCOS CAD JSON.
+   */
+  async parseDwg(file: File): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    const baseUrl = getApiBaseUrl();
+
+    try {
+      const response = await fetch(`${baseUrl}/api/cad/parse/`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let code = 'NETWORK_ERROR';
+        let message = 'An unexpected error occurred during parsing.';
+        
+        try {
+          const errorData = await response.json();
+          code = errorData.code || `HTTP_${response.status}`;
+          message = errorData.message || message;
+        } catch (e) {
+          if (response.status === 413) {
+            code = 'FILE_TOO_LARGE';
+            message = 'The selected file is too large for the server to process.';
+          } else if (response.status === 503 || response.status === 504) {
+            code = 'CAD_CONVERTER_UNAVAILABLE';
+            message = 'The CAD conversion service is currently unavailable. Please try again.';
+          } else if (response.status === 500) {
+            code = 'SERVER_ERROR';
+            message = 'An internal server error occurred while processing the file.';
+          }
+        }
+        
+        throw new CadApiError(code, message);
+      }
+
+      const jsonResponse = await response.json();
+      if (!jsonResponse.success) {
+        throw new CadApiError('PARSING_FAILED', 'Parsing succeeded via HTTP but returned failure status.');
+      }
+      
+      return jsonResponse.data;
+    } catch (error) {
+      if (error instanceof CadApiError) {
+        throw error;
+      }
       throw new CadApiError('NETWORK_ERROR', 'Unable to connect to the ARCOS backend. Please ensure the server is running.');
     }
   }

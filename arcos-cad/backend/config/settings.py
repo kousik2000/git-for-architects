@@ -133,6 +133,6 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173')
+cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://192.168.0.100:5173,http://192.168.0.100:5174,http://172.23.80.1:5174')
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 
