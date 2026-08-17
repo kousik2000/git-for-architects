@@ -17,7 +17,10 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-load_dotenv(BASE_DIR / '.env')
+# override=True ensures .env values always win over stale shell environment variables.
+# This prevents the CORS origin list from being silently ignored when
+# CORS_ALLOWED_ORIGINS is already present in the process environment.
+load_dotenv(BASE_DIR / '.env', override=True)
 CAD_CONVERTER_URL = os.environ.get('CAD_CONVERTER_URL', 'http://localhost:8080')
 
 
@@ -133,6 +136,30 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173,http://localhost:5174,http://192.168.0.100:5173,http://192.168.0.100:5174,http://172.23.80.1:5174')
+# CORS Origins — loaded from .env CORS_ALLOWED_ORIGINS, with a safe development
+# fallback that includes both ports used during LAN development.
+# In production, set CORS_ALLOWED_ORIGINS in the server environment.
+cors_origins = os.environ.get(
+    'CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://localhost:5174,http://192.168.0.100:5173,http://192.168.0.100:5174'
+)
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 
+# Explicitly allow the headers required for multipart/form-data file uploads.
+from corsheaders.defaults import default_headers
+CORS_ALLOW_HEADERS = list(default_headers) + [
+    'content-disposition',
+]
+
+# Explicitly allow the HTTP methods used by this API.
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+# Send CORS headers on all responses, including 4xx/5xx error responses.
+CORS_EXPOSE_HEADERS = []

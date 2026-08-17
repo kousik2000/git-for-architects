@@ -1,0 +1,6231 @@
+{
+    "success": true,
+    "data": {
+        "version": "1.0",
+        "document": {
+            "name": "Mr.Keerti 42x45 EE-15 Feb P-03.dwg",
+            "format": "DXF"
+        },
+        "units": {
+            "name": null,
+            "code": null
+        },
+        "bounds": {
+            "min": [
+                0.5714999872259796,
+                0,
+                0
+            ],
+            "max": [
+                419.3963239590948,
+                296.9683266955739,
+                0
+            ]
+        },
+        "layers": [
+            {
+                "name": "0",
+                "color": 7,
+                "linetype": "CONTINUOUS",
+                "visible": true,
+                "frozen": false,
+                "locked": false
+            },
+            {
+                "name": "213CBD0",
+                "color": 7,
+                "linetype": "CONTINUOUS",
+                "visible": true,
+                "frozen": false,
+                "locked": true
+            },
+            {
+                "name": "Defpoints",
+                "color": 7,
+                "linetype": "Continuous",
+                "visible": true,
+                "frozen": false,
+                "locked": false
+            }
+        ],
+        "blocks": [
+            {
+                "name": "_CLOSEDFILLED",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF11_3",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF6490_4",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF6505_5",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7675_6",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7690_7",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8888_8",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8914_10",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8925_11",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8952_12",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8978_14",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9004_16",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9030_18",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9056_20",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9082_22",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9108_24",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9134_26",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9160_28",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9186_30",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9212_32",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9238_34",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9264_36",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9290_38",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9316_40",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9342_42",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9353_43",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9701_44",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9712_45",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9757_46",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9768_47",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF93716_48",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF93727_49",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF93772_50",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF93783_51",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF156872_52",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF156883_53",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF156928_54",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF156939_55",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF158589_57",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF158627_59",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF158635_60",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF158665_61",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF158694_63",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF11_45",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF585_46",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF611_48",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF637_50",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF663_52",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF689_54",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF700_55",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF777_56",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF788_57",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF1882_58",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF1908_60",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF1934_62",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF1960_64",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF1986_66",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF1997_67",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF2074_68",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF2085_69",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3179_70",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3205_72",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3231_74",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3257_76",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3283_78",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3294_79",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3371_80",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF3382_81",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4476_82",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4502_84",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4528_86",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4554_88",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4580_90",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4606_92",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4632_94",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4658_96",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4684_98",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4710_100",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF4721_101",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7074_102",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7100_104",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7111_105",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7138_106",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7164_108",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7190_110",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7216_112",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7242_114",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7268_116",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7294_118",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7320_120",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7346_122",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7372_124",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7398_126",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7424_128",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7450_130",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7476_132",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7502_134",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7528_136",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7539_137",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7757_138",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7768_139",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7813_140",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF7824_141",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8023_142",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8049_144",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8060_145",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8087_146",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8113_148",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8139_150",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8165_152",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8191_154",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8217_156",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8243_158",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8269_160",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8295_162",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8321_164",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8347_166",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8373_168",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8399_170",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8425_172",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8451_174",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8477_176",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF8488_177",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9651_179",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9689_181",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9697_182",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9727_183",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "MF9756_185",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "6458140",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            },
+            {
+                "name": "64582C0",
+                "basePoint": [
+                    0,
+                    0,
+                    0
+                ]
+            }
+        ],
+        "layouts": [],
+        "entities": [
+            {
+                "id": "1CDDD",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF11_3",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CDD7",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF6490_4",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CDD1",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF6505_5",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CDCB",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF7675_6",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CDC5",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF7690_7",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CDB5",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF8925_11",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CD35",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF9353_43",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CD2D",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF9712_45",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CD25",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF9768_47",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CD1D",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF93727_49",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CD15",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF93783_51",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CD0D",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF156883_53",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CD05",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF156939_55",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CAB2",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 9
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            32.32149927755818,
+                            256.9844942559488,
+                            0,
+                            0
+                        ],
+                        [
+                            0.5714999872259796,
+                            256.9844942559488,
+                            0,
+                            0
+                        ],
+                        [
+                            2.264833282710363,
+                            31.28433263407399,
+                            0,
+                            0
+                        ],
+                        [
+                            347.408492234815,
+                            31.28433263407399,
+                            0,
+                            0
+                        ],
+                        [
+                            347.408492234815,
+                            276.2249938258901,
+                            0,
+                            0
+                        ],
+                        [
+                            32.32149927755818,
+                            276.2249938258901,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CAC7",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 25
+                },
+                "geometry": {
+                    "start": [
+                        419.3963239590948,
+                        0.740833316774418,
+                        0
+                    ],
+                    "end": [
+                        419.3963239590948,
+                        279.844493744988,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CAC8",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        356.1291587065595,
+                        198.543328895544,
+                        0
+                    ]
+                },
+                "text": "Client Name"
+            },
+            {
+                "id": "1CAC9",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        378.0154915506952,
+                        198.543328895544,
+                        0
+                    ]
+                },
+                "text": ":  Mr. "
+            },
+            {
+                "id": "1CACA",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        388.5353246488919,
+                        198.543328895544,
+                        0
+                    ]
+                },
+                "text": "Keerti Ji"
+            },
+            {
+                "id": "1CACB",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        356.3831587008822,
+                        183.5784958967008,
+                        0
+                    ]
+                },
+                "text": "Date             :"
+            },
+            {
+                "id": "1CCEF",
+                "type": "INSERT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "MF158635_60",
+                "geometry": {
+                    "insertionPoint": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        1,
+                        1,
+                        1
+                    ]
+                }
+            },
+            {
+                "id": "1CAF2",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 15
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            347.3873255686214,
+                            31.28433263407399,
+                            0,
+                            0
+                        ],
+                        [
+                            0.5714999872259796,
+                            31.28433263407399,
+                            0,
+                            0
+                        ],
+                        [
+                            0.5714999872259796,
+                            29.65449933717028,
+                            0,
+                            0
+                        ],
+                        [
+                            347.3873255686214,
+                            29.65449933717028,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CB0D",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CB05",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            348.9959921993316,
+                            277.8759937889874,
+                            0,
+                            0
+                        ],
+                        [
+                            347.3661589024278,
+                            277.8759937889874,
+                            0,
+                            0
+                        ],
+                        [
+                            348.9959921993316,
+                            0,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CB09",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            347.3661589024278,
+                            277.8759937889874,
+                            0,
+                            0
+                        ],
+                        [
+                            348.9959921993316,
+                            0,
+                            0,
+                            0
+                        ],
+                        [
+                            347.3661589024278,
+                            0,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CB0E",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        380.2379915010184,
+                        183.3033292361846,
+                        0
+                    ]
+                },
+                "text": "15-Feb-26 -"
+            },
+            {
+                "id": "1CB0F",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        380.2379915010184,
+                        178.8371626693445,
+                        0
+                    ]
+                },
+                "text": "P-03"
+            },
+            {
+                "id": "1CB10",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        357.8859920006246,
+                        250.4863277345275,
+                        0
+                    ]
+                },
+                "text": "WALL- EXTERNAL -9 INCH"
+            },
+            {
+                "id": "1CB11",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        358.0129919977859,
+                        245.8296611719454,
+                        0
+                    ]
+                },
+                "text": "          INTERNAL -5 INCH"
+            },
+            {
+                "id": "1CB12",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        357.6319920063019,
+                        241.1729946093634,
+                        0
+                    ]
+                },
+                "text": "FLOOR HT ="
+            },
+            {
+                "id": "1CB13",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        358.0129919977859,
+                        236.5163280467813,
+                        0
+                    ]
+                },
+                "text": "       11'-0\" FT WITH SLAB"
+            },
+            {
+                "id": "1CB14",
+                "type": "TEXT",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "location": [
+                        365.9293251541754,
+                        230.5473281801989,
+                        0
+                    ]
+                },
+                "text": "RISER -6.3 INCH"
+            },
+            {
+                "id": "1CB15",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            388.2389913221821,
+                            134.9163303177183,
+                            0,
+                            0
+                        ],
+                        [
+                            384.9793247283747,
+                            136.2709969541058,
+                            0,
+                            0
+                        ],
+                        [
+                            385.9953247056653,
+                            136.3768302850736,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB19",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        387.5404913377948,
+                        135.1914969782345,
+                        0
+                    ],
+                    "end": [
+                        385.5084913832136,
+                        135.3608303077829,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB1A",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.7991581104386,
+                        134.4929969938472,
+                        0
+                    ],
+                    "end": [
+                        384.0268247496647,
+                        133.7098303446857,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB1B",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.9948247950835,
+                            115.4641640858414,
+                            0,
+                            0
+                        ],
+                        [
+                            381.6138248035995,
+                            115.2524974239059,
+                            0,
+                            0
+                        ],
+                        [
+                            380.9999914839864,
+                            114.8291641000348,
+                            0,
+                            0
+                        ],
+                        [
+                            380.4073248305669,
+                            114.8079974338412,
+                            0,
+                            0
+                        ],
+                        [
+                            379.7934915109538,
+                            115.2101640915188,
+                            0,
+                            0
+                        ],
+                        [
+                            379.2008248575343,
+                            114.5963307719057,
+                            0,
+                            0
+                        ],
+                        [
+                            380.0051581728893,
+                            114.1941641142281,
+                            0,
+                            0
+                        ],
+                        [
+                            380.6189914925024,
+                            114.2153307804217,
+                            0,
+                            0
+                        ],
+                        [
+                            381.4233248078575,
+                            114.6386641042928,
+                            0,
+                            0
+                        ],
+                        [
+                            381.6138248035995,
+                            114.8503307662283,
+                            0,
+                            0
+                        ],
+                        [
+                            381.9948247950835,
+                            115.4641640858414,
+                            0,
+                            0
+                        ],
+                        [
+                            382.1853247908255,
+                            116.4589973969385,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB28",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.1114914144389,
+                            120.9463306299721,
+                            0,
+                            0
+                        ],
+                        [
+                            382.7144914456644,
+                            120.522997306101,
+                            0,
+                            0
+                        ],
+                        [
+                            380.4919914953411,
+                            120.4806639737139,
+                            0,
+                            0
+                        ],
+                        [
+                            379.6664915137924,
+                            120.8616639651979,
+                            0,
+                            0
+                        ],
+                        [
+                            379.0738248603729,
+                            120.2478306455848,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB2E",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            383.5188247610194,
+                            120.5441639722946,
+                            0,
+                            0
+                        ],
+                        [
+                            382.5028247837288,
+                            120.3113306441655,
+                            0,
+                            0
+                        ],
+                        [
+                            380.2803248334055,
+                            120.2689973117784,
+                            0,
+                            0
+                        ],
+                        [
+                            379.2854915223085,
+                            120.4594973075204,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB33",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.1114914144389,
+                            120.9463306299721,
+                            0,
+                            0
+                        ],
+                        [
+                            383.1166581033419,
+                            120.332497310359,
+                            0,
+                            0
+                        ],
+                        [
+                            381.9101581303092,
+                            119.9091639864879,
+                            0,
+                            0
+                        ],
+                        [
+                            380.3014914995991,
+                            119.8668306541008,
+                            0,
+                            0
+                        ],
+                        [
+                            379.0738248603729,
+                            120.2478306455848,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB39",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.1853247908255,
+                        116.4589973969385,
+                        0
+                    ],
+                    "end": [
+                        382.1218247922448,
+                        119.9091639864879,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB3A",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.9524914626963,
+                            118.0888306938422,
+                            0,
+                            0
+                        ],
+                        [
+                            381.5503248050188,
+                            117.6654973699711,
+                            0,
+                            0
+                        ],
+                        [
+                            380.9576581515993,
+                            117.6654973699711,
+                            0,
+                            0
+                        ],
+                        [
+                            380.5343248277282,
+                            118.0464973614551,
+                            0,
+                            0
+                        ],
+                        [
+                            379.9416581743087,
+                            117.432664041842,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB40",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.3598248092769,
+                            117.4538307080356,
+                            0,
+                            0
+                        ],
+                        [
+                            380.5554914939217,
+                            117.4538307080356,
+                            0,
+                            0
+                        ],
+                        [
+                            380.3438248319862,
+                            117.6443307037776,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB44",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            382.1429914584384,
+                            118.8931640091973,
+                            0,
+                            0
+                        ],
+                        [
+                            381.9524914626963,
+                            118.0888306938422,
+                            0,
+                            0
+                        ],
+                        [
+                            381.5503248050188,
+                            117.4749973742291,
+                            0,
+                            0
+                        ],
+                        [
+                            381.3598248092769,
+                            117.051664050358,
+                            0,
+                            0
+                        ],
+                        [
+                            380.5554914939217,
+                            117.051664050358,
+                            0,
+                            0
+                        ],
+                        [
+                            379.9416581743087,
+                            117.432664041842,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB4B",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            383.2013247681161,
+                            115.8874974097125,
+                            0,
+                            0
+                        ],
+                        [
+                            383.158991435729,
+                            118.7026640134553,
+                            0,
+                            0
+                        ],
+                        [
+                            383.539991427213,
+                            119.3164973330684,
+                            0,
+                            0
+                        ],
+                        [
+                            383.730491422955,
+                            119.7398306569395,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB50",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        384.3866580749552,
+                        117.5173307066162,
+                        0
+                    ],
+                    "end": [
+                        383.5823247596001,
+                        117.5173307066162,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB51",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        383.6034914257937,
+                        116.5013307293256,
+                        0
+                    ],
+                    "end": [
+                        383.5611580934066,
+                        118.9143306753909,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB52",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            383.2013247681161,
+                            115.8874974097125,
+                            0,
+                            0
+                        ],
+                        [
+                            383.6034914257937,
+                            116.0991640716481,
+                            0,
+                            0
+                        ],
+                        [
+                            383.7939914215356,
+                            116.7129973912612,
+                            0,
+                            0
+                        ],
+                        [
+                            383.7939914215356,
+                            117.1151640489387,
+                            0,
+                            0
+                        ],
+                        [
+                            384.3866580749552,
+                            117.1151640489387,
+                            0,
+                            0
+                        ],
+                        [
+                            384.7888247326327,
+                            117.5384973728098,
+                            0,
+                            0
+                        ],
+                        [
+                            384.7888247326327,
+                            118.1311640262293,
+                            0,
+                            0
+                        ],
+                        [
+                            384.3866580749552,
+                            117.7289973685518,
+                            0,
+                            0
+                        ],
+                        [
+                            383.7728247553421,
+                            117.7078307023582,
+                            0,
+                            0
+                        ],
+                        [
+                            383.730491422955,
+                            119.7398306569395,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB5D",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.402158141664,
+                            114.8291641000348,
+                            0,
+                            0
+                        ],
+                        [
+                            380.5978248263089,
+                            114.6174974380992,
+                            0,
+                            0
+                        ],
+                        [
+                            380.0051581728893,
+                            114.5963307719057,
+                            0,
+                            0
+                        ],
+                        [
+                            379.3913248532762,
+                            114.7868307676477,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB62",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.8523247312134,
+                            114.913830764809,
+                            0,
+                            0
+                        ],
+                        [
+                            384.2384914116003,
+                            114.4904974409379,
+                            0,
+                            0
+                        ],
+                        [
+                            383.6246580919872,
+                            114.8714974324219,
+                            0,
+                            0
+                        ],
+                        [
+                            382.8203247766321,
+                            114.8714974324219,
+                            0,
+                            0
+                        ],
+                        [
+                            382.2276581232126,
+                            114.2364974466153,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB68",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        383.8363247539227,
+                        114.4904974409379,
+                        0
+                    ],
+                    "end": [
+                        383.2436581005032,
+                        114.4693307747444,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB69",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.8523247312134,
+                            114.913830764809,
+                            0,
+                            0
+                        ],
+                        [
+                            384.2596580777939,
+                            114.2788307790024,
+                            0,
+                            0
+                        ],
+                        [
+                            383.6458247581808,
+                            114.2788307790024,
+                            0,
+                            0
+                        ],
+                        [
+                            382.8414914428257,
+                            114.4693307747444,
+                            0,
+                            0
+                        ],
+                        [
+                            382.2276581232126,
+                            114.2364974466153,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB6F",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        407.881657549801,
+                        135.6148303021056,
+                        0
+                    ],
+                    "end": [
+                        402.2301576761218,
+                        135.5089969711378,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB70",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        408.4108242046399,
+                        140.0809968689457,
+                        0
+                    ],
+                    "end": [
+                        402.9498243267028,
+                        139.9539968717843,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CB71",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            408.3896575384463,
+                            140.6736635223652,
+                            0,
+                            0
+                        ],
+                        [
+                            408.4108242046399,
+                            140.0809968689457,
+                            0,
+                            0
+                        ],
+                        [
+                            408.2203242088979,
+                            139.4671635493326,
+                            0,
+                            0
+                        ],
+                        [
+                            407.2254908978008,
+                            138.8321635635259,
+                            0,
+                            0
+                        ],
+                        [
+                            403.8176576406385,
+                            137.1599969342351,
+                            0,
+                            0
+                        ],
+                        [
+                            402.8228243295414,
+                            136.5249969484285,
+                            0,
+                            0
+                        ],
+                        [
+                            402.4206576718639,
+                            136.1016636245574,
+                            0,
+                            0
+                        ],
+                        [
+                            402.2301576761218,
+                            135.5089969711378,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB7A",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            408.4108242046399,
+                            139.4671635493326,
+                            0,
+                            0
+                        ],
+                        [
+                            407.8181575512203,
+                            138.8533302297195,
+                            0,
+                            0
+                        ],
+                        [
+                            407.2254908978008,
+                            138.4299969058484,
+                            0,
+                            0
+                        ],
+                        [
+                            403.4154909829609,
+                            136.5249969484285,
+                            0,
+                            0
+                        ],
+                        [
+                            402.4418243380574,
+                            135.5089969711378,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB80",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            407.7758242188332,
+                            141.2663301757847,
+                            0,
+                            0
+                        ],
+                        [
+                            408.3896575384463,
+                            140.6736635223652,
+                            0,
+                            0
+                        ],
+                        [
+                            408.8129908623174,
+                            140.0809968689457,
+                            0,
+                            0
+                        ],
+                        [
+                            408.8129908623174,
+                            139.4671635493326,
+                            0,
+                            0
+                        ],
+                        [
+                            408.4319908708334,
+                            138.8533302297195,
+                            0,
+                            0
+                        ],
+                        [
+                            407.4371575597364,
+                            138.2394969101064,
+                            0,
+                            0
+                        ],
+                        [
+                            404.029324302574,
+                            136.546163614622,
+                            0,
+                            0
+                        ],
+                        [
+                            403.034490991477,
+                            135.9111636288154,
+                            0,
+                            0
+                        ],
+                        [
+                            402.8439909957349,
+                            135.5089969711378,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB8A",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            404.3679909616709,
+                            139.9963302041714,
+                            0,
+                            0
+                        ],
+                        [
+                            404.5796576236065,
+                            139.3824968845583,
+                            0,
+                            0
+                        ],
+                        [
+                            404.6008242898,
+                            138.1759969115257,
+                            0,
+                            0
+                        ],
+                        [
+                            404.410324294058,
+                            137.5621635919127,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB8F",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            402.1031576789605,
+                            141.350996840559,
+                            0,
+                            0
+                        ],
+                        [
+                            402.3359910070897,
+                            140.3561635294619,
+                            0,
+                            0
+                        ],
+                        [
+                            402.3571576732832,
+                            139.3401635521712,
+                            0,
+                            0
+                        ],
+                        [
+                            402.1666576775412,
+                            139.1284968902357,
+                            0,
+                            0
+                        ],
+                        [
+                            402.7804909971543,
+                            138.3453302410742,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB95",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            402.7381576647672,
+                            140.3561635294619,
+                            0,
+                            0
+                        ],
+                        [
+                            402.7593243309607,
+                            139.3613302183648,
+                            0,
+                            0
+                        ],
+                        [
+                            402.3571576732832,
+                            138.7474968987517,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB99",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            402.1031576789605,
+                            141.350996840559,
+                            0,
+                            0
+                        ],
+                        [
+                            402.7381576647672,
+                            140.5678301913974,
+                            0,
+                            0
+                        ],
+                        [
+                            402.9498243267028,
+                            139.9539968717843,
+                            0,
+                            0
+                        ],
+                        [
+                            402.9709909928963,
+                            139.1496635564293,
+                            0,
+                            0
+                        ],
+                        [
+                            402.7804909971543,
+                            138.3453302410742,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CB9F",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        405.55332426851,
+                        140.6313301899781,
+                        0
+                    ],
+                    "end": [
+                        405.5744909347035,
+                        140.017496870365,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CBA0",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            405.9766575923811,
+                            140.017496870365,
+                            0,
+                            0
+                        ],
+                        [
+                            405.9766575923811,
+                            140.6313301899781,
+                            0,
+                            0
+                        ],
+                        [
+                            405.55332426851,
+                            141.0334968476556,
+                            0,
+                            0
+                        ],
+                        [
+                            404.9394909488969,
+                            141.0123301814621,
+                            0,
+                            0
+                        ],
+                        [
+                            405.1511576108325,
+                            140.6101635237845,
+                            0,
+                            0
+                        ],
+                        [
+                            405.172324277026,
+                            140.017496870365,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CBA7",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            406.8233242401233,
+                            137.8161635862353,
+                            0,
+                            0
+                        ],
+                        [
+                            406.6328242443813,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            406.2518242528973,
+                            136.9906636046867,
+                            0,
+                            0
+                        ],
+                        [
+                            406.2518242528973,
+                            136.1863302893316,
+                            0,
+                            0
+                        ],
+                        [
+                            406.6751575767684,
+                            135.593663635912,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CBAD",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            408.262657541285,
+                            136.6308302793962,
+                            0,
+                            0
+                        ],
+                        [
+                            408.8976575270916,
+                            136.0381636259767,
+                            0,
+                            0
+                        ],
+                        [
+                            408.4954908694141,
+                            135.4243303063636,
+                            0,
+                            0
+                        ],
+                        [
+                            408.5166575356076,
+                            134.8104969867505,
+                            0,
+                            0
+                        ],
+                        [
+                            408.9188241932852,
+                            134.4294969952665,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CBB3",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            408.4743242032205,
+                            136.2286636217187,
+                            0,
+                            0
+                        ],
+                        [
+                            408.2838242074785,
+                            135.6148303021056,
+                            0,
+                            0
+                        ],
+                        [
+                            408.3049908736721,
+                            135.0221636486861,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CBB7",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            408.262657541285,
+                            136.6308302793962,
+                            0,
+                            0
+                        ],
+                        [
+                            407.881657549801,
+                            136.0169969597831,
+                            0,
+                            0
+                        ],
+                        [
+                            407.9028242159945,
+                            135.4243303063636,
+                            0,
+                            0
+                        ],
+                        [
+                            408.3049908736721,
+                            134.8104969867505,
+                            0,
+                            0
+                        ],
+                        [
+                            408.9188241932852,
+                            134.4294969952665,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CBC1",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBBD",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            381.1481581473413,
+                            150.9394966262393,
+                            0,
+                            0
+                        ],
+                        [
+                            380.0263248390829,
+                            140.9064968504943,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBC6",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBC2",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            382.6721581132772,
+                            140.8641635181072,
+                            0,
+                            0
+                        ],
+                        [
+                            382.5451581161159,
+                            142.1764968221076,
+                            0,
+                            0
+                        ],
+                        [
+                            383.8786580863099,
+                            143.869830117592,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBCB",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBC7",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            380.0263248390829,
+                            140.9064968504943,
+                            0,
+                            0
+                        ],
+                        [
+                            378.9044915308245,
+                            141.6049968348816,
+                            0,
+                            0
+                        ],
+                        [
+                            378.735158201276,
+                            143.7004967880436,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBD0",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBCC",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            388.5353246488919,
+                            145.0339967582375,
+                            0,
+                            0
+                        ],
+                        [
+                            382.6721581132772,
+                            140.8641635181072,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBD5",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBD1",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            374.0996583048876,
+                            144.7376634315277,
+                            0,
+                            0
+                        ],
+                        [
+                            377.9519915521145,
+                            139.0438302254615,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBDA",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBD6",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            361.9076585774,
+                            137.30816359759,
+                            0,
+                            0
+                        ],
+                        [
+                            378.0154915506952,
+                            136.1228302907509,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBDF",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBDB",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            400.9178243721215,
+                            138.0066635819773,
+                            0,
+                            0
+                        ],
+                        [
+                            384.9158247297941,
+                            139.1919968888164,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBE4",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBE0",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            381.6984914683737,
+                            124.375330553328,
+                            0,
+                            0
+                        ],
+                        [
+                            382.7991581104386,
+                            134.4929969938472,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBE9",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBE5",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            388.8316579756017,
+                            130.555997081846,
+                            0,
+                            0
+                        ],
+                        [
+                            384.9793247283747,
+                            136.2709969541058,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBEE",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBEA",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            380.1744915024378,
+                            134.4506636614601,
+                            0,
+                            0
+                        ],
+                        [
+                            380.4073248305669,
+                            133.0324970264919,
+                            0,
+                            0
+                        ],
+                        [
+                            378.9679915294051,
+                            131.4026637295882,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBF3",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBEF",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            137.6044969242998,
+                            0,
+                            0
+                        ],
+                        [
+                            374.3536582992102,
+                            130.2384970889427,
+                            0,
+                            0
+                        ],
+                        [
+                            380.1744915024378,
+                            134.4506636614601,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBF8",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBF4",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            377.9519915521145,
+                            139.0438302254615,
+                            0,
+                            0
+                        ],
+                        [
+                            376.9359915748239,
+                            138.9168302283001,
+                            0,
+                            0
+                        ],
+                        [
+                            375.2003249469524,
+                            140.0809968689457,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBFD",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CBF9",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            378.0154915506952,
+                            136.1228302907509,
+                            0,
+                            0
+                        ],
+                        [
+                            377.4228248972756,
+                            135.1914969782345,
+                            0,
+                            0
+                        ],
+                        [
+                            375.2849916117266,
+                            134.979830316299,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CBFE",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        379.9416581743087,
+                        141.1181635124298,
+                        0
+                    ],
+                    "end": [
+                        378.4599915407598,
+                        144.3143301076566,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CBFF",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        388.5353246488919,
+                        145.0339967582375,
+                        0
+                    ],
+                    "end": [
+                        385.4026580522458,
+                        140.1021635351392,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC04",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CC00",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            382.7991581104386,
+                            134.4929969938472,
+                            0,
+                            0
+                        ],
+                        [
+                            384.0268247496647,
+                            133.7098303446857,
+                            0,
+                            0
+                        ],
+                        [
+                            384.1114914144389,
+                            131.508497060556,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CC05",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        381.1058248149542,
+                        152.950329914627,
+                        0
+                    ],
+                    "end": [
+                        381.3386581430833,
+                        141.4356635053332,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC0A",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CC06",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.9158247297941,
+                            139.1919968888164,
+                            0,
+                            0
+                        ],
+                        [
+                            385.4026580522458,
+                            140.1021635351392,
+                            0,
+                            0
+                        ],
+                        [
+                            387.4981580054077,
+                            140.2926635308812,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CC0B",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        378.735158201276,
+                        143.7004967880436,
+                        0
+                    ],
+                    "end": [
+                        380.2168248348249,
+                        142.2188301544947,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC0C",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.5451581161159,
+                        142.1764968221076,
+                        0
+                    ],
+                    "end": [
+                        381.1481581473413,
+                        150.9394966262393,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC0D",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        384.1114914144389,
+                        144.4201634386244,
+                        0
+                    ],
+                    "end": [
+                        382.7568247780515,
+                        141.160496844817,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC12",
+                "type": "HATCH",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "geometry": {
+                    "solid_fill": 1,
+                    "pattern_name": "SOLID"
+                }
+            },
+            {
+                "id": "1CC0E",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": -2
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.9793247283747,
+                            136.2709969541058,
+                            0,
+                            0
+                        ],
+                        [
+                            385.9953247056653,
+                            136.3768302850736,
+                            0,
+                            0
+                        ],
+                        [
+                            387.5616580039884,
+                            135.1914969782345,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": true
+                }
+            },
+            {
+                "id": "1CC13",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        383.8786580863099,
+                        143.869830117592,
+                        0
+                    ],
+                    "end": [
+                        383.8574914201163,
+                        141.6896634996558,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC14",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        378.735158201276,
+                        140.2714968646877,
+                        0
+                    ],
+                    "end": [
+                        372.9566583304356,
+                        145.817163407399,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC15",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        378.9044915308245,
+                        141.6049968348816,
+                        0
+                    ],
+                    "end": [
+                        374.0996583048876,
+                        144.7376634315277,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC16",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        389.6359912909568,
+                        146.1558300664959,
+                        0
+                    ],
+                    "end": [
+                        384.0903247482454,
+                        140.3773301956554,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC17",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        379.7934915109538,
+                        155.46916319166,
+                        0
+                    ],
+                    "end": [
+                        379.687658179986,
+                        160.5279964119196,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC18",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.2276581232126,
+                        155.5114965240471,
+                        0
+                    ],
+                    "end": [
+                        382.1218247922448,
+                        160.5703297443067,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC19",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            379.7934915109538,
+                            155.46916319166,
+                            0,
+                            0
+                        ],
+                        [
+                            379.1796581913407,
+                            155.4479965254665,
+                            0,
+                            0
+                        ],
+                        [
+                            378.7774915336631,
+                            155.659663187402,
+                            0,
+                            0
+                        ],
+                        [
+                            378.6716582026954,
+                            160.506829745726,
+                            0,
+                            0
+                        ],
+                        [
+                            379.0738248603729,
+                            160.7184964076616,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC1F",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            378.7986581998567,
+                            155.0458298677889,
+                            0,
+                            0
+                        ],
+                        [
+                            378.5869915379212,
+                            155.4479965254665,
+                            0,
+                            0
+                        ],
+                        [
+                            378.4811582069534,
+                            160.4856630795325,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC23",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            379.7934915109538,
+                            155.46916319166,
+                            0,
+                            0
+                        ],
+                        [
+                            378.7986581998567,
+                            154.8341632058534,
+                            0,
+                            0
+                        ],
+                        [
+                            378.1848248802436,
+                            155.4268298592729,
+                            0,
+                            0
+                        ],
+                        [
+                            378.0789915492758,
+                            160.4856630795325,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC28",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            382.2276581232126,
+                            155.5114965240471,
+                            0,
+                            0
+                        ],
+                        [
+                            381.6138248035995,
+                            155.5114965240471,
+                            0,
+                            0
+                        ],
+                        [
+                            381.402158141664,
+                            155.7019965197891,
+                            0,
+                            0
+                        ],
+                        [
+                            381.3174914768897,
+                            160.5491630781132,
+                            0,
+                            0
+                        ],
+                        [
+                            381.5079914726317,
+                            160.7608297400487,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC2E",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            381.4233248078575,
+                            155.088163200176,
+                            0,
+                            0
+                        ],
+                        [
+                            380.9999914839864,
+                            155.4903298578536,
+                            0,
+                            0
+                        ],
+                        [
+                            380.8941581530186,
+                            160.5491630781132,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC32",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            382.2276581232126,
+                            155.5114965240471,
+                            0,
+                            0
+                        ],
+                        [
+                            381.4233248078575,
+                            154.6859965424985,
+                            0,
+                            0
+                        ],
+                        [
+                            380.8094914882444,
+                            155.4903298578536,
+                            0,
+                            0
+                        ],
+                        [
+                            380.7036581572767,
+                            160.5491630781132,
+                            0,
+                            0
+                        ],
+                        [
+                            379.687658179986,
+                            160.5279964119196,
+                            0,
+                            0
+                        ],
+                        [
+                            379.0738248603729,
+                            160.7184964076616,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC39",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.4501580735358,
+                            154.7494965410791,
+                            0,
+                            0
+                        ],
+                        [
+                            383.8363247539227,
+                            155.1516631987567,
+                            0,
+                            0
+                        ],
+                        [
+                            383.6246580919872,
+                            155.5538298564342,
+                            0,
+                            0
+                        ],
+                        [
+                            383.2224914343096,
+                            156.1464965098538,
+                            0,
+                            0
+                        ],
+                        [
+                            383.1166581033419,
+                            160.5914964105003,
+                            0,
+                            0
+                        ],
+                        [
+                            382.1218247922448,
+                            160.5703297443067,
+                            0,
+                            0
+                        ],
+                        [
+                            381.5079914726317,
+                            160.7608297400487,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC41",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            383.8363247539227,
+                            155.5538298564342,
+                            0,
+                            0
+                        ],
+                        [
+                            383.6246580919872,
+                            156.1464965098538,
+                            0,
+                            0
+                        ],
+                        [
+                            383.539991427213,
+                            160.5914964105003,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC45",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            384.4501580735358,
+                            154.7494965410791,
+                            0,
+                            0
+                        ],
+                        [
+                            384.2384914116003,
+                            155.1516631987567,
+                            0,
+                            0
+                        ],
+                        [
+                            383.8363247539227,
+                            155.7443298521762,
+                            0,
+                            0
+                        ],
+                        [
+                            383.7939914215356,
+                            157.7763298067575,
+                            0,
+                            0
+                        ],
+                        [
+                            384.3866580749552,
+                            157.7763298067575,
+                            0,
+                            0
+                        ],
+                        [
+                            384.7888247326327,
+                            157.987996468693,
+                            0,
+                            0
+                        ],
+                        [
+                            384.7888247326327,
+                            158.6018297883061,
+                            0,
+                            0
+                        ],
+                        [
+                            384.3866580749552,
+                            158.3901631263706,
+                            0,
+                            0
+                        ],
+                        [
+                            383.7728247553421,
+                            158.3901631263706,
+                            0,
+                            0
+                        ],
+                        [
+                            383.730491422955,
+                            160.6126630766938,
+                            0,
+                            0
+                        ],
+                        [
+                            384.3443247425681,
+                            160.8243297386294,
+                            0,
+                            0
+                        ],
+                        [
+                            383.5188247610194,
+                            160.8031630724358,
+                            0,
+                            0
+                        ],
+                        [
+                            382.5028247837288,
+                            161.1841630639198,
+                            0,
+                            0
+                        ],
+                        [
+                            382.1006581260513,
+                            161.3746630596618,
+                            0,
+                            0
+                        ],
+                        [
+                            381.5079914726317,
+                            160.7608297400487,
+                            0,
+                            0
+                        ],
+                        [
+                            380.7036581572767,
+                            160.5491630781132,
+                            0,
+                            0
+                        ],
+                        [
+                            379.878158175728,
+                            160.7184964076616,
+                            0,
+                            0
+                        ],
+                        [
+                            379.6664915137924,
+                            161.3323297272747,
+                            0,
+                            0
+                        ],
+                        [
+                            379.0738248603729,
+                            160.7184964076616,
+                            0,
+                            0
+                        ],
+                        [
+                            378.0789915492758,
+                            160.4856630795325,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC5A",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            383.1166581033419,
+                            160.8031630724358,
+                            0,
+                            0
+                        ],
+                        [
+                            382.5239914499223,
+                            160.7819964062423,
+                            0,
+                            0
+                        ],
+                        [
+                            381.9101581303092,
+                            161.1629963977263,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC5E",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        384.3866580749552,
+                        157.987996468693,
+                        0
+                    ],
+                    "end": [
+                        383.5823247596001,
+                        157.9668298024995,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC5F",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        379.7299915123731,
+                        158.4959964573384,
+                        0
+                    ],
+                    "end": [
+                        378.7139915350825,
+                        158.4748297911448,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC60",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        379.7511581785667,
+                        157.2894964843057,
+                        0
+                    ],
+                    "end": [
+                        378.7563248674696,
+                        157.2683298181122,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC61",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.1641581246319,
+                        158.559496455919,
+                        0
+                    ],
+                    "end": [
+                        381.3386581430833,
+                        158.5383297897255,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC62",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.1853247908255,
+                        157.3318298166928,
+                        0
+                    ],
+                    "end": [
+                        381.3809914754704,
+                        157.3106631504993,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC63",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        379.687658179986,
+                        160.7184964076616,
+                        0
+                    ],
+                    "end": [
+                        379.2643248561149,
+                        161.1206630653391,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC64",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        377.6768248915983,
+                        137.5198302595255,
+                        0
+                    ],
+                    "end": [
+                        360.9128252663029,
+                        137.2869969313964,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC65",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        376.9359915748239,
+                        138.9168302283001,
+                        0
+                    ],
+                    "end": [
+                        361.9076585774,
+                        137.30816359759,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CC66",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            354.202992082946,
+                            139.4248302169455,
+                            0,
+                            0
+                        ],
+                        [
+                            354.6263254068171,
+                            138.2183302439128,
+                            0,
+                            0
+                        ],
+                        [
+                            354.6474920730107,
+                            136.6096636132027,
+                            0,
+                            0
+                        ],
+                        [
+                            354.2664920815267,
+                            135.7841636316541,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC6B",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            354.6051587406236,
+                            138.8321635635259,
+                            0,
+                            0
+                        ],
+                        [
+                            354.8379920687527,
+                            138.0278302481709,
+                            0,
+                            0
+                        ],
+                        [
+                            354.8591587349462,
+                            136.6096636132027,
+                            0,
+                            0
+                        ],
+                        [
+                            354.6686587392042,
+                            135.7841636316541,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC70",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            354.202992082946,
+                            139.4248302169455,
+                            0,
+                            0
+                        ],
+                        [
+                            354.8168254025591,
+                            138.6204969015904,
+                            0,
+                            0
+                        ],
+                        [
+                            355.2401587264302,
+                            137.2234969328158,
+                            0,
+                            0
+                        ],
+                        [
+                            355.2613253926237,
+                            136.4191636174607,
+                            0,
+                            0
+                        ],
+                        [
+                            354.8803254011398,
+                            135.40316364017,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC76",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            358.0341586639794,
+                            139.5094968817197,
+                            0,
+                            0
+                        ],
+                        [
+                            357.8224920020439,
+                            139.4883302155261,
+                            0,
+                            0
+                        ],
+                        [
+                            357.0181586866888,
+                            139.2766635535906,
+                            0,
+                            0
+                        ],
+                        [
+                            356.8276586909468,
+                            138.6628302339775,
+                            0,
+                            0
+                        ],
+                        [
+                            356.8911586895275,
+                            136.4403302836542,
+                            0,
+                            0
+                        ],
+                        [
+                            356.4889920318499,
+                            135.8264969640412,
+                            0,
+                            0
+                        ],
+                        [
+                            356.298492036108,
+                            135.8264969640412,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC7E",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            357.4203253443663,
+                            139.2766635535906,
+                            0,
+                            0
+                        ],
+                        [
+                            357.0393253528824,
+                            138.6628302339775,
+                            0,
+                            0
+                        ],
+                        [
+                            357.102825351463,
+                            136.0381636259767,
+                            0,
+                            0
+                        ],
+                        [
+                            356.8911586895275,
+                            135.8476636302347,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC83",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            358.0341586639794,
+                            139.5094968817197,
+                            0,
+                            0
+                        ],
+                        [
+                            357.8436586682374,
+                            139.2978302197841,
+                            0,
+                            0
+                        ],
+                        [
+                            357.4414920105599,
+                            138.6839969001711,
+                            0,
+                            0
+                        ],
+                        [
+                            357.5049920091406,
+                            135.8476636302347,
+                            0,
+                            0
+                        ],
+                        [
+                            357.102825351463,
+                            135.4454969725572,
+                            0,
+                            0
+                        ],
+                        [
+                            356.9123253557211,
+                            135.4454969725572,
+                            0,
+                            0
+                        ],
+                        [
+                            356.298492036108,
+                            135.8264969640412,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC8B",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            360.2778252804962,
+                            138.9379968944937,
+                            0,
+                            0
+                        ],
+                        [
+                            359.6639919608832,
+                            138.9379968944937,
+                            0,
+                            0
+                        ],
+                        [
+                            359.2618253032056,
+                            138.7263302325582,
+                            0,
+                            0
+                        ],
+                        [
+                            359.0713253074636,
+                            137.7103302552675,
+                            0,
+                            0
+                        ],
+                        [
+                            359.1559919722379,
+                            134.4718303276536,
+                            0,
+                            0
+                        ],
+                        [
+                            358.7538253145603,
+                            133.8579970080406,
+                            0,
+                            0
+                        ],
+                        [
+                            358.1611586611407,
+                            133.646330346105,
+                            0,
+                            0
+                        ],
+                        [
+                            357.5473253415277,
+                            133.6251636799115,
+                            0,
+                            0
+                        ],
+                        [
+                            356.3196587023015,
+                            134.408330329073,
+                            0,
+                            0
+                        ],
+                        [
+                            354.2664920815267,
+                            135.7841636316541,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC96",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            359.2618253032056,
+                            138.9168302283001,
+                            0,
+                            0
+                        ],
+                        [
+                            359.0501586412701,
+                            138.7051635663646,
+                            0,
+                            0
+                        ],
+                        [
+                            358.6691586497861,
+                            137.689163589074,
+                            0,
+                            0
+                        ],
+                        [
+                            358.7326586483667,
+                            134.8739969853312,
+                            0,
+                            0
+                        ],
+                        [
+                            358.5421586526248,
+                            134.2601636657181,
+                            0,
+                            0
+                        ],
+                        [
+                            358.1399919949472,
+                            133.836830341847,
+                            0,
+                            0
+                        ],
+                        [
+                            357.5473253415277,
+                            133.836830341847,
+                            0,
+                            0
+                        ],
+                        [
+                            356.9334920219146,
+                            134.217830333331,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CC9F",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            360.7434919367545,
+                            135.1068303134603,
+                            0,
+                            0
+                        ],
+                        [
+                            360.9339919324964,
+                            136.5249969484285,
+                            0,
+                            0
+                        ],
+                        [
+                            360.8916586001093,
+                            137.7314969214611,
+                            0,
+                            0
+                        ],
+                        [
+                            360.6799919381738,
+                            138.7474968987517,
+                            0,
+                            0
+                        ],
+                        [
+                            360.2778252804962,
+                            138.9379968944937,
+                            0,
+                            0
+                        ],
+                        [
+                            359.6428252946896,
+                            139.3401635521712,
+                            0,
+                            0
+                        ],
+                        [
+                            359.0501586412701,
+                            138.9168302283001,
+                            0,
+                            0
+                        ],
+                        [
+                            358.6479919835925,
+                            138.7051635663646,
+                            0,
+                            0
+                        ],
+                        [
+                            358.4786586540441,
+                            137.689163589074,
+                            0,
+                            0
+                        ],
+                        [
+                            358.5209919864312,
+                            135.0644969810732,
+                            0,
+                            0
+                        ],
+                        [
+                            358.1399919949472,
+                            134.4506636614601,
+                            0,
+                            0
+                        ],
+                        [
+                            357.9283253330117,
+                            134.2389969995245,
+                            0,
+                            0
+                        ],
+                        [
+                            357.1239920176566,
+                            134.217830333331,
+                            0,
+                            0
+                        ],
+                        [
+                            356.3196587023015,
+                            134.408330329073,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CCAE",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            360.1296586171414,
+                            135.9111636288154,
+                            0,
+                            0
+                        ],
+                        [
+                            360.3201586128833,
+                            136.1016636245574,
+                            0,
+                            0
+                        ],
+                        [
+                            360.7223252705609,
+                            136.7154969441705,
+                            0,
+                            0
+                        ],
+                        [
+                            360.8916586001093,
+                            137.7314969214611,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CCB3",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            356.8488253571404,
+                            137.6679969228804,
+                            0,
+                            0
+                        ],
+                        [
+                            356.2349920375273,
+                            138.2606635762999,
+                            0,
+                            0
+                        ],
+                        [
+                            355.8328253798497,
+                            138.8533302297195,
+                            0,
+                            0
+                        ],
+                        [
+                            355.8116587136562,
+                            139.255496887397,
+                            0,
+                            0
+                        ],
+                        [
+                            356.2138253713337,
+                            139.255496887397,
+                            0,
+                            0
+                        ],
+                        [
+                            355.8328253798497,
+                            138.8533302297195,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CCBA",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        358.4998253202377,
+                        136.6731636117833,
+                        0
+                    ],
+                    "end": [
+                        357.4626586767534,
+                        137.2658302652029,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCBB",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            360.7434919367545,
+                            135.1068303134603,
+                            0,
+                            0
+                        ],
+                        [
+                            360.1296586171414,
+                            135.9111636288154,
+                            0,
+                            0
+                        ],
+                        [
+                            359.1136586398507,
+                            136.4826636160413,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CCBF",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        360.3413252790769,
+                        135.5089969711378,
+                        0
+                    ],
+                    "end": [
+                        360.7223252705609,
+                        136.1228302907509,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC0",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        385.9953247056653,
+                        136.3768302850736,
+                        0
+                    ],
+                    "end": [
+                        400.9178243721215,
+                        138.0066635819773,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC1",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        401.9338243494121,
+                        138.0278302481709,
+                        0
+                    ],
+                    "end": [
+                        385.1486580579232,
+                        137.689163589074,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC2",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        381.4868248064382,
+                        133.8579970080406,
+                        0
+                    ],
+                    "end": [
+                        381.7408248007608,
+                        122.237497267779,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC3",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.6509914470837,
+                        133.1806636898468,
+                        0
+                    ],
+                    "end": [
+                        384.1114914144389,
+                        131.508497060556,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC4",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        382.6721581132772,
+                        140.8641635181072,
+                        0
+                    ],
+                    "end": [
+                        382.5451581161159,
+                        142.1764968221076,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC5",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        380.4073248305669,
+                        133.0324970264919,
+                        0
+                    ],
+                    "end": [
+                        381.6984914683737,
+                        124.375330553328,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC6",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        378.8409915322438,
+                        134.9163303177183,
+                        0
+                    ],
+                    "end": [
+                        373.2953249895324,
+                        129.1589971130714,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC7",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        379.0738248603729,
+                        133.6039970137179,
+                        0
+                    ],
+                    "end": [
+                        378.9679915294051,
+                        131.4026637295882,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC8",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        380.06865817147,
+                        134.1331636685568,
+                        0
+                    ],
+                    "end": [
+                        378.735158201276,
+                        130.7676637437816,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCC9",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        377.4228248972756,
+                        135.1914969782345,
+                        0
+                    ],
+                    "end": [
+                        374.3536582992102,
+                        130.2384970889427,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCCA",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        378.0154915506952,
+                        136.1228302907509,
+                        0
+                    ],
+                    "end": [
+                        374.7134916245006,
+                        134.7469969881699,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCCB",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        377.9519915521145,
+                        139.0438302254615,
+                        0
+                    ],
+                    "end": [
+                        374.5864916273393,
+                        140.2926635308812,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCCC",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        380.0263248390829,
+                        140.9064968504943,
+                        0
+                    ],
+                    "end": [
+                        378.9044915308245,
+                        141.6049968348816,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCCD",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        377.9519915521145,
+                        139.0438302254615,
+                        0
+                    ],
+                    "end": [
+                        376.9359915748239,
+                        138.9168302283001,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCCE",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        377.3169915663079,
+                        139.9539968717843,
+                        0
+                    ],
+                    "end": [
+                        375.2003249469524,
+                        140.0809968689457,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCCF",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        378.0154915506952,
+                        136.1228302907509,
+                        0
+                    ],
+                    "end": [
+                        377.4228248972756,
+                        135.1914969782345,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCD0",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        380.1744915024378,
+                        134.4506636614601,
+                        0
+                    ],
+                    "end": [
+                        380.4073248305669,
+                        133.0324970264919,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCD1",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        376.9994915734046,
+                        136.2074969555251,
+                        0
+                    ],
+                    "end": [
+                        375.2849916117266,
+                        134.979830316299,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCD2",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        389.9746579500537,
+                        129.4976637721683,
+                        0
+                    ],
+                    "end": [
+                        384.0903247482454,
+                        135.0221636486861,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCD3",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        384.0268247496647,
+                        133.7098303446857,
+                        0
+                    ],
+                    "end": [
+                        388.8316579756017,
+                        130.555997081846,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCD4",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        384.3866580749552,
+                        130.8946637409429,
+                        0
+                    ],
+                    "end": [
+                        382.9049914414063,
+                        134.1966636671374,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1CCD5",
+                "type": "LWPOLYLINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "vertices": [
+                        [
+                            388.1331579912144,
+                            140.5678301913974,
+                            0,
+                            0
+                        ],
+                        [
+                            384.9158247297941,
+                            139.1919968888164,
+                            0,
+                            0
+                        ],
+                        [
+                            385.4026580522458,
+                            140.1021635351392,
+                            0,
+                            0
+                        ]
+                    ],
+                    "closed": false
+                }
+            },
+            {
+                "id": "1CCD9",
+                "type": "LINE",
+                "layer": "0",
+                "style": {
+                    "color": 0,
+                    "linetype": "Continuous",
+                    "lineweight": 5
+                },
+                "geometry": {
+                    "start": [
+                        385.9318247070847,
+                        139.1073302240422,
+                        0
+                    ],
+                    "end": [
+                        387.4981580054077,
+                        140.2926635308812,
+                        0
+                    ]
+                }
+            },
+            {
+                "id": "1E9D8",
+                "type": "INSERT",
+                "layer": "213CBD0",
+                "style": {
+                    "color": 0,
+                    "linetype": null,
+                    "lineweight": null
+                },
+                "blockName": "6458140",
+                "geometry": {
+                    "insertionPoint": [
+                        281.1983137147278,
+                        11.35854608311374,
+                        0
+                    ],
+                    "rotation": 0,
+                    "scale": [
+                        3.118703428144405,
+                        3.118703428144405,
+                        3.118703428144405
+                    ]
+                }
+            }
+        ],
+        "statistics": {
+            "totalEntities": 184,
+            "supportedEntities": 165,
+            "unsupportedEntities": 19,
+            "layers": 3,
+            "blocks": 130,
+            "parsingTimeMs": 9163,
+            "entityTypes": {
+                "INSERT": 15,
+                "IMAGE": 16,
+                "LWPOLYLINE": 68,
+                "OLE2FRAME": 3,
+                "LINE": 54,
+                "TEXT": 11,
+                "HATCH": 17
+            }
+        },
+        "warnings": [
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "IMAGE"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "OLE2FRAME"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "OLE2FRAME"
+            },
+            {
+                "code": "UNSUPPORTED_ENTITY",
+                "message": "Entity type not fully mapped.",
+                "entityType": "OLE2FRAME"
+            }
+        ]
+    }
+}

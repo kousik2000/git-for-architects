@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { ArcosCadDocument, CadLineEntity } from '../../types/cad-json';
+import type { ArcosCadDocument, CadLineEntity, CadTextEntity } from '../../types/cad-json';
 
 export class CadRenderer {
   private container: HTMLDivElement;
@@ -80,6 +80,8 @@ export class CadRenderer {
     let straightSegments = 0;
     let bulgedSegments = 0;
     let generatedVertices = 0;
+    
+    let renderedTexts = 0;
 
     // Filter only LINE entities
     const lineEntities = doc.entities.filter(e => e.type === 'LINE') as CadLineEntity[];
@@ -179,6 +181,28 @@ export class CadRenderer {
       this.scene.add(lineSegments);
     }
     
+    // Process TEXT (MVP Implementation)
+    // LIMITATION: parsed_cad.json currently lacks 'height', 'rotation', and 'alignment'
+    // for TEXT entities. We use a default arbitrary height (e.g. 3 CAD units) and 
+    // no rotation. Creating one CanvasTexture per entity is not scalable for 10k+ texts,
+    // but works well for the 11 entities in the canonical JSON.
+    const textEntities = doc.entities.filter(e => e.type === 'TEXT') as CadTextEntity[];
+    
+    for (const textEntity of textEntities) {
+      if (!textEntity.text || !textEntity.geometry?.location) continue;
+      
+      const mesh = this.createTextMesh(textEntity.text);
+      if (mesh) {
+        mesh.position.set(
+          textEntity.geometry.location[0],
+          textEntity.geometry.location[1],
+          textEntity.geometry.location[2] || 0
+        );
+        this.scene.add(mesh);
+        renderedTexts++;
+      }
+    }
+    
     console.log(`
 LWPOLYLINE DEBUG
 ----------------
@@ -192,7 +216,55 @@ Straight segments: ${straightSegments}
 Bulged segments: ${bulgedSegments}
 
 Generated vertices: ${generatedVertices}
+
+TEXT DEBUG
+----------
+Rendered MVP Text Entities: ${renderedTexts}
     `);
+  }
+
+  private createTextMesh(text: string): THREE.Mesh | null {
+    // Arbitrary default CAD height for text since JSON lacks height
+    const defaultCadHeight = 4.0;
+    
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    const fontSize = 64; // High-res canvas internal rendering
+    ctx.font = `${fontSize}px sans-serif`;
+    const metrics = ctx.measureText(text);
+    const textWidth = metrics.width;
+    
+    canvas.width = Math.ceil(textWidth) + 4;
+    canvas.height = fontSize + 12; // padding
+    
+    // Re-apply font after resize
+    ctx.font = `${fontSize}px sans-serif`;
+    ctx.fillStyle = '#ffffff'; // Default to white
+    ctx.textBaseline = 'top';
+    ctx.fillText(text, 2, 2);
+    
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.minFilter = THREE.LinearFilter;
+    
+    const material = new THREE.MeshBasicMaterial({
+      map: texture,
+      transparent: true,
+      side: THREE.DoubleSide
+    });
+    
+    const aspect = canvas.width / canvas.height;
+    const planeHeight = defaultCadHeight;
+    const planeWidth = planeHeight * aspect;
+    
+    const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
+    
+    // Default alignment: anchor at bottom-left of the text bounding box.
+    // The translation ensures mesh.position sets the bottom-left corner accurately.
+    geometry.translate(planeWidth / 2, planeHeight / 2, 0);
+    
+    return new THREE.Mesh(geometry, material);
   }
 
   public fitToDrawing() {
@@ -349,12 +421,23 @@ Generated vertices: ${generatedVertices}
       this.scene.remove(child);
       
       // Free GPU resources
-      if (child instanceof THREE.LineSegments) {
-        child.geometry.dispose();
+      if (child instanceof THREE.LineSegments || child instanceof THREE.Mesh) {
+        if (child.geometry) {
+          child.geometry.dispose();
+        }
+        
+        const disposeMaterial = (mat: THREE.Material) => {
+          mat.dispose();
+          // Dispose textures if this is a Mesh with CanvasTexture (TEXT entities)
+          if ('map' in mat && mat.map) {
+            mat.map.dispose();
+          }
+        };
+
         if (Array.isArray(child.material)) {
-          child.material.forEach(m => m.dispose());
-        } else {
-          child.material.dispose();
+          child.material.forEach(disposeMaterial);
+        } else if (child.material) {
+          disposeMaterial(child.material);
         }
       }
     }

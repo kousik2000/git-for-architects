@@ -64,13 +64,21 @@ export interface CadHatchEntity extends CadEntityBase {
   };
 }
 
+export interface CadTextEntity extends CadEntityBase {
+  type: 'TEXT';
+  text: string;
+  geometry: {
+    location: [number, number, number];
+  };
+}
+
 // We map all unsupported/unknown entity types to a generic interface for now
 export interface CadGenericEntity extends CadEntityBase {
-  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH'>;
+  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT'>;
   geometry: any;
 }
 
-export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadGenericEntity;
+export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadGenericEntity;
 
 export interface CadStatistics {
   totalEntities: number;
