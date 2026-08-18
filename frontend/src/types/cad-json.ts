@@ -25,6 +25,7 @@ export interface CadLayer {
 export interface CadBlock {
   name: string;
   basePoint: [number, number, number];
+  entities: CadEntity[];
 }
 
 export interface CadStyle {
@@ -82,13 +83,23 @@ export interface CadTextEntity extends CadEntityBase {
   };
 }
 
+export interface CadInsertEntity extends CadEntityBase {
+  type: 'INSERT';
+  blockName: string;
+  geometry: {
+    insertionPoint: [number, number, number];
+    rotation: number;
+    scale: [number, number, number];
+  };
+}
+
 // We map all unsupported/unknown entity types to a generic interface for now
 export interface CadGenericEntity extends CadEntityBase {
-  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT'>;
+  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT'>;
   geometry: any;
 }
 
-export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadGenericEntity;
+export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadGenericEntity;
 
 export interface CadStatistics {
   totalEntities: number;
@@ -112,7 +123,7 @@ export interface ArcosCadDocument {
   units: CadUnits;
   bounds: CadBounds;
   layers: CadLayer[];
-  blocks: CadBlock[];
+  blocks: Record<string, CadBlock>;
   layouts: any[];
   entities: CadEntity[];
   statistics: CadStatistics;
