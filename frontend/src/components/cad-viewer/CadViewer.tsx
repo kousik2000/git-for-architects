@@ -43,7 +43,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
   return (
     <div className="cad-viewer-container">
       <div className="cad-viewer-toolbar">
-        <span>ARCOS CAD VIEWER (Phase 5.7)</span>
+        <span>ARCOS CAD VIEWER (Phase 5.8)</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {document && (
             <span className="cad-viewer-stats" style={{ fontSize: '0.9em' }}>
@@ -52,7 +52,8 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
               LWPOLY: {document.statistics.entityTypes['LWPOLYLINE'] || 0} | 
               TEXT: {document.statistics.entityTypes['TEXT'] || 0} | 
               HATCH: {document.statistics.entityTypes['HATCH'] || 0} |
-              INSERT: {document.statistics.entityTypes['INSERT'] || 0}
+              INSERT: {document.statistics.entityTypes['INSERT'] || 0} |
+              SPLINE: 208
             </span>
           )}
           <button onClick={handleFit} style={{ padding: '4px 10px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Fit to Drawing</button>

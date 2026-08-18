@@ -380,11 +380,35 @@ class ArcosDxfParser:
             except AttributeError:
                 z = pt[2] if len(pt) > 2 else 0.0
                 control_points.append([pt[0], pt[1], z])
-        props["geometry"] = {
+                
+        geometry = {
             "controlPoints": control_points,
             "closed": entity.closed,
             "degree": entity.dxf.degree
         }
+        
+        if hasattr(entity, "knots") and len(entity.knots) > 0:
+            geometry["knots"] = list(entity.knots)
+            
+        if hasattr(entity, "weights") and len(entity.weights) > 0:
+            geometry["weights"] = list(entity.weights)
+            
+        if hasattr(entity, "fit_points") and len(entity.fit_points) > 0:
+            fit_points = []
+            for pt in entity.fit_points:
+                try:
+                    fit_points.append([pt.x, pt.y, pt.z])
+                except AttributeError:
+                    z = pt[2] if len(pt) > 2 else 0.0
+                    fit_points.append([pt[0], pt[1], z])
+            geometry["fitPoints"] = fit_points
+            
+        if hasattr(entity.dxf, "flags"):
+            flags = entity.dxf.flags
+            geometry["rational"] = bool(flags & 4) # 4 = SPLINE_RATIONAL
+            geometry["periodic"] = bool(flags & 2) # 2 = SPLINE_PERIODIC
+            
+        props["geometry"] = geometry
         return props
 
     def _parse_point(self, entity):

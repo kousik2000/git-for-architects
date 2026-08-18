@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { ArcosCadDocument, CadEntity, CadHatchEntity, CadInsertEntity, CadTextEntity } from '../../types/cad-json';
+import type { ArcosCadDocument, CadEntity, CadHatchEntity, CadInsertEntity, CadTextEntity, CadSplineEntity } from '../../types/cad-json';
 
 interface PathInfo {
   points: THREE.Vector2[];
@@ -20,7 +20,9 @@ interface RenderContext {
     renderedTexts: number;
     resolvedInserts: number;
     skippedInserts: number;
+    renderedSplines: number;
     unsupportedSplines: number;
+    splineSegments: number;
   };
 }
 
@@ -144,7 +146,9 @@ export class CadRenderer {
         renderedTexts: 0,
         resolvedInserts: 0,
         skippedInserts: 0,
-        unsupportedSplines: 0
+        renderedSplines: 0,
+        unsupportedSplines: 0,
+        splineSegments: 0
       }
     };
 
@@ -186,13 +190,15 @@ export class CadRenderer {
     }
 
     console.log(`
---- PHASE 5.7 RENDER STATISTICS ---
+--- PHASE 5.8 RENDER STATISTICS ---
 LWPOLYLINE Processed: ${context.stats.renderedLwpolylines}
 HATCH Processed: ${context.stats.renderedHatches}
 HATCH Triangles: ${Math.floor(context.stats.hatchTriangles)}
 TEXT Processed: ${context.stats.renderedTexts}
 INSERT Resolved: ${context.stats.resolvedInserts}
 INSERT Skipped: ${context.stats.skippedInserts}
+SPLINE Processed: ${context.stats.renderedSplines}
+SPLINE Segments: ${context.stats.splineSegments}
 Unsupported SPLINEs: ${context.stats.unsupportedSplines}
 Batched Line Vertices: ${context.lines.length / 3}
 Batched Hatch Vertices: ${context.hatchPositions.length / 3}
@@ -454,7 +460,48 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
         this.processEntities(block.entities, finalMatrix, doc, depth + 1, context);
       }
       else if (entity.type === 'SPLINE') {
-        context.stats.unsupportedSplines++;
+        const spline = entity as CadSplineEntity;
+        const g = spline.geometry;
+        
+        let valid = true;
+        if (g.degree !== 3) valid = false;
+        else if (!g.controlPoints || g.controlPoints.length !== 4) valid = false;
+        else if (g.rational) valid = false;
+        else if (g.periodic) valid = false;
+        else if (g.closed) valid = false;
+        else if (g.weights && g.weights.some(w => Math.abs(w - 1) > 1e-6)) valid = false;
+        else if (!g.knots || g.knots.length !== 8) valid = false;
+        else {
+          const k = g.knots;
+          const isBezierKnot = 
+                k[0] === k[1] && k[1] === k[2] && k[2] === k[3] &&
+                k[4] === k[5] && k[5] === k[6] && k[6] === k[7] &&
+                k[0] !== k[4];
+          if (!isBezierKnot) valid = false;
+        }
+
+        if (!valid) {
+          console.warn(`Unsupported SPLINE encountered (must be standard cubic Bezier):`, entity);
+          context.stats.unsupportedSplines++;
+          continue;
+        }
+
+        const p0 = new THREE.Vector3(...g.controlPoints[0]).applyMatrix4(parentMatrix);
+        const p1 = new THREE.Vector3(...g.controlPoints[1]).applyMatrix4(parentMatrix);
+        const p2 = new THREE.Vector3(...g.controlPoints[2]).applyMatrix4(parentMatrix);
+        const p3 = new THREE.Vector3(...g.controlPoints[3]).applyMatrix4(parentMatrix);
+
+        const curve = new THREE.CubicBezierCurve3(p0, p1, p2, p3);
+        const segments = 16;
+        const points = curve.getPoints(segments);
+
+        for (let j = 0; j < points.length - 1; j++) {
+          context.lines.push(points[j].x, points[j].y, points[j].z);
+          context.lines.push(points[j+1].x, points[j+1].y, points[j+1].z);
+        }
+        
+        context.stats.renderedSplines++;
+        context.stats.splineSegments += segments;
       }
     }
   }

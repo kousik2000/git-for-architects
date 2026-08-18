@@ -93,13 +93,27 @@ export interface CadInsertEntity extends CadEntityBase {
   };
 }
 
+export interface CadSplineEntity extends CadEntityBase {
+  type: 'SPLINE';
+  geometry: {
+    controlPoints: [number, number, number][];
+    closed: boolean;
+    degree: number;
+    knots: number[];
+    rational: boolean;
+    periodic: boolean;
+    weights?: number[];
+    fitPoints?: [number, number, number][];
+  };
+}
+
 // We map all unsupported/unknown entity types to a generic interface for now
 export interface CadGenericEntity extends CadEntityBase {
-  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT'>;
+  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT' | 'SPLINE'>;
   geometry: any;
 }
 
-export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadGenericEntity;
+export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadSplineEntity | CadGenericEntity;
 
 export interface CadStatistics {
   totalEntities: number;
