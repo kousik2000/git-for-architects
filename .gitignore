@@ -1,36 +1,24 @@
-# Python
+# Frontend
+arcos-cad/frontend/node_modules/
+arcos-cad/frontend/dist/
+arcos-cad/frontend/.env
+arcos-cad/frontend/.env.local
+
+# Backend
+arcos-cad/backend/.venv/
+arcos-cad/backend/__pycache__/
+arcos-cad/backend/**/*.pyc
+arcos-cad/backend/.pytest_cache/
+
+# General
+*.pyc
 __pycache__/
-*.py[cod]
-*$py.class
+.pytest_cache/
 
-# Virtual Environments
-venv/
-env/
+# Environment files
 .env
-.venv/
-
-# Django
-*.log
-local_settings.py
-db.sqlite3
-db.sqlite3-journal
-
-# Node
-node_modules/
-npm-debug.log
-yarn-error.log
-
-# IDEs and Editors
-.vscode/
-.idea/
-*.swp
-*.swo
+.env.*
 
 # OS generated files
 .DS_Store
 Thumbs.db
-
-# Other
-coverage.xml
-.coverage
-htmlcov/

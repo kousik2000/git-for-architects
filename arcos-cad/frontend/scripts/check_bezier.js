@@ -1,5 +1,5 @@
-﻿const fs = require('fs');
-const data = JSON.parse(fs.readFileSync('e:\\viewer_v2\\new_parsed_cad.json', 'utf8')).data;
+const fs = require('fs');
+const data = JSON.parse(fs.readFileSync('../src/dummy-json/new_parsed_cad.json', 'utf8')).data;
 const blocks = data.blocks;
 
 let allBezierEquivalent = true;
@@ -33,5 +33,5 @@ if (!allBezierEquivalent) {
     console.log(`Some non-Bezier knots:`, nonBezierKnots.slice(0, 5));
 }
 
-const stats = fs.statSync('e:\\viewer_v2\\new_parsed_cad.json');
+const stats = fs.statSync('../src/dummy-json/new_parsed_cad.json');
 console.log(`New JSON size: ${(stats.size / 1024 / 1024).toFixed(2)} MB`);

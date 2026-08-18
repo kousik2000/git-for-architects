@@ -17,7 +17,7 @@ describe('FileUploader', () => {
     
     fireEvent.change(input, { target: { files: [file] } });
     
-    expect(screen.getByText('Only DWG files are supported.')).toBeInTheDocument();
+    expect(screen.getByText('Only DWG and JSON files are supported.')).toBeInTheDocument();
     expect(onFileSelect).not.toHaveBeenCalled();
   });
 

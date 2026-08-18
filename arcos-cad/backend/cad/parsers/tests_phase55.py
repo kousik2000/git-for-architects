@@ -1,4 +1,4 @@
-﻿"""
+"""
 Phase 5.5 Automated Tests for ARCOS DXF Parser
 ===============================================
 
@@ -383,7 +383,7 @@ def test_entity_count_regression_from_parsed_json():
     The reference file is the parsed_cad.json already generated from the canonical DWG.
     """
     json_path = os.path.join(
-        os.path.dirname(__file__), "..", "..", "..", "..", "parsed_cad.json"
+        os.path.dirname(__file__), "..", "..", "..", "frontend", "src", "dummy-json", "parsed_cad.json"
     )
     json_path = os.path.normpath(json_path)
 

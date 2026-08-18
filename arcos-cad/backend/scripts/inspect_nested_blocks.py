@@ -2,7 +2,7 @@ import ezdxf
 import json
 
 # Load the parsed_cad.json to know which 15 blocks are referenced
-data = json.load(open("parsed_cad.json"))
+data = json.load(open("../../frontend/src/dummy-json/parsed_cad.json"))
 d = data["data"]
 
 inserts = [e for e in d["entities"] if e["type"] == "INSERT"]

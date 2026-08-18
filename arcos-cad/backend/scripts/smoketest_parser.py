@@ -1,4 +1,4 @@
-﻿import sys, json
+import sys, json
 sys.path.insert(0, "arcos-cad/backend")
 from cad.parsers.dxf_parser import ArcosDxfParser
 

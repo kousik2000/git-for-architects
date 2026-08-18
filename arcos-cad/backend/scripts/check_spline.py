@@ -1,4 +1,4 @@
-﻿import ezdxf
+import ezdxf
 
 # Check what block entities have SPLINEs
 doc = ezdxf.readfile("F2841747_django_test.dxf")

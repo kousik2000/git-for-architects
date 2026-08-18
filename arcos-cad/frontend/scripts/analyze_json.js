@@ -165,4 +165,4 @@ function analyzeFile(filename) {
 }
 
 analyzeFile('F2841747_parsed.json');
-analyzeFile('parsed_cad.json');
+analyzeFile('../src/dummy-json/parsed_cad.json');

@@ -1,7 +1,7 @@
-﻿import json, os
+import json, os
 
 # Before stats
-before_path = "parsed_cad.json"
+before_path = "../../frontend/src/dummy-json/parsed_cad.json"
 after_path = "parsed_cad_phase5_5.json"
 before_size = os.path.getsize(before_path)
 after_size = os.path.getsize(after_path)

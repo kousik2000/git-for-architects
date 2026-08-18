@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 data = json.load(open("parsed_cad_phase5_5.json"))
 d = data["data"]

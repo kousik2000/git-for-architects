@@ -1,4 +1,4 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 const data = JSON.parse(fs.readFileSync('parsed_cad_phase5_5.json', 'utf8')).data;
 console.log("type of blocks:", Array.isArray(data.blocks) ? "Array" : "Object");
 const keys = Object.keys(data.blocks);

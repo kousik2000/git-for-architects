@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import os
 sys.path.insert(0, r"E:\viewer_v2\arcos-cad\backend")
 from cad.parsers.dxf_parser import ArcosDxfParser

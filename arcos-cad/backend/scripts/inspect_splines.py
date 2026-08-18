@@ -1,4 +1,4 @@
-﻿import ezdxf
+import ezdxf
 
 doc = ezdxf.readfile(r"E:\viewer_v2\dxf_files\F2841747.dxf")
 

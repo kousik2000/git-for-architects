@@ -1,4 +1,4 @@
-﻿import ezdxf
+import ezdxf
 
 doc2 = ezdxf.new("R2010")
 msp2 = doc2.modelspace()

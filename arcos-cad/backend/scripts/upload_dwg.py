@@ -1,4 +1,4 @@
-﻿import requests
+import requests
 
 url = "http://192.168.0.100:8000/api/cad/parse/"
 filepath = r"C:\Users\kousi\Downloads\Mr.Keerti 42x45 EE-15 Feb P-03.dwg"
@@ -8,7 +8,7 @@ with open(filepath, 'rb') as f:
     r = requests.post(url, files=files)
     
 if r.status_code == 200:
-    with open("e:\\viewer_v2\\new_parsed_cad.json", "wb") as out:
+    with open("../../frontend/src/dummy-json/new_parsed_cad.json", "wb") as out:
         out.write(r.content)
     print("Success! JSON saved to new_parsed_cad.json")
 else:

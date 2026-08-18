@@ -1,6 +1,6 @@
-﻿const fs = require('fs');
+const fs = require('fs');
 
-const data = JSON.parse(fs.readFileSync('e:\\viewer_v2\\new_parsed_cad.json', 'utf8')).data;
+const data = JSON.parse(fs.readFileSync('../src/dummy-json/new_parsed_cad.json', 'utf8')).data;
 const blocks = data.blocks;
 
 let splines = [];

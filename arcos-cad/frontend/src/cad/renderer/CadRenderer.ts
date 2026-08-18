@@ -688,8 +688,8 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
         
         const disposeMaterial = (mat: THREE.Material) => {
           mat.dispose();
-          if ('map' in mat && mat.map) {
-            mat.map.dispose();
+          if ('map' in mat && (mat as any).map && typeof (mat as any).map.dispose === 'function') {
+            (mat as any).map.dispose();
           }
         };
 
