@@ -55,12 +55,22 @@ export interface CadLwPolylineEntity extends CadEntityBase {
     closed: boolean;
   };
 }
+export type CadHatchEdge =
+  | { type: 'LineEdge'; start: [number, number]; end: [number, number] }
+  | { type: 'ArcEdge'; center: [number, number]; radius: number; startAngle: number; endAngle: number; ccw: boolean }
+  | { type: 'EllipseEdge'; center: [number, number]; majorAxisEndPoint: [number, number]; ratio: number; startAngle: number; endAngle: number; ccw: boolean }
+  | { type: 'SplineEdge'; degree: number; controlPoints: [number, number][]; knots: number[]; weights: number[] };
+
+export type CadHatchBoundaryPath =
+  | { type: 'EdgePath'; pathTypeFlags: number; edges: CadHatchEdge[] }
+  | { type: 'PolylinePath'; pathTypeFlags: number; isClosed: boolean | number; vertices: [number, number, number][] }; // [x, y, bulge]
 
 export interface CadHatchEntity extends CadEntityBase {
   type: 'HATCH';
   geometry: {
-    solid_fill: number;
-    pattern_name: string;
+    solidFill: boolean;
+    patternName: string;
+    boundaryPaths: CadHatchBoundaryPath[];
   };
 }
 
