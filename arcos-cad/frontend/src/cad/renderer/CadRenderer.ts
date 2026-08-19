@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 import type { ArcosCadDocument, CadEntity, CadHatchEntity, CadInsertEntity, CadTextEntity, CadSplineEntity } from '../../types/cad-json';
+import { hasPermission } from '../../permissions/permission-service';
+import { PERMISSIONS } from '../../permissions/permissions';
+import { getAciColor } from './AciPalette';
 
 interface PathInfo {
   points: THREE.Vector2[];
@@ -8,8 +11,10 @@ interface PathInfo {
 
 interface RenderContext {
   lines: number[];
+  colors: number[]; // Added for vertex colors
   hatchPositions: number[];
   hatchIndices: number[];
+  hatchColors: number[]; // Added for hatch vertex colors
   hatchCurrentIndexOffset: number;
   
   stats: {
@@ -24,6 +29,13 @@ interface RenderContext {
     unsupportedSplines: number;
     splineSegments: number;
   };
+}
+
+interface InheritedStyle {
+  color?: number;
+  linetype?: string;
+  lineweight?: number;
+  ltscale?: number;
 }
 
 export class CadRenderer {
@@ -83,6 +95,126 @@ export class CadRenderer {
     this.fitToDrawing();
   }
 
+  
+  private resolveColor(entity: CadEntity, doc: ArcosCadDocument, inherited: InheritedStyle): number {
+    // 1. trueColor overrides all
+    if (entity.style && entity.style.trueColor != null) {
+      return entity.style.trueColor;
+    }
+    
+    let aci = entity.style ? entity.style.color : 256; // 256 = BYLAYER
+    
+    // BYBLOCK
+    if (aci === 0) {
+      if (inherited.color != null) return inherited.color;
+      return 0xffffff; // Default if no inherited
+    }
+    
+    // BYLAYER
+    if (aci === 256) {
+      const layerName = entity.layer;
+      const layer = doc.layers.find(l => l.name === layerName);
+      if (layer) {
+        if (layer.trueColor != null) return layer.trueColor;
+        return getAciColor(layer.color);
+      }
+      return 0xffffff;
+    }
+    
+    // Explicit ACI
+    return getAciColor(aci);
+  }
+
+  private resolveLinetype(entity: CadEntity, doc: ArcosCadDocument, inherited: InheritedStyle): string | null {
+    let lt = entity.style?.linetype;
+    if (!lt || lt.toUpperCase() === 'BYLAYER') {
+      const layer = doc.layers.find(l => l.name === entity.layer);
+      lt = layer ? layer.linetype : null;
+    } else if (lt.toUpperCase() === 'BYBLOCK') {
+      lt = inherited.linetype || null;
+    }
+    return lt;
+  }
+
+  private addLineSegment(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number, ltName: string | null, ltScale: number, doc: ArcosCadDocument, parentMatrix: THREE.Matrix4, context: RenderContext) {
+    const vec3 = new THREE.Vector3();
+    const r = ((color >> 16) & 255) / 255;
+    const g = ((color >> 8) & 255) / 255;
+    const b = (color & 255) / 255;
+
+    const pattern = (ltName && doc.linetypes && doc.linetypes[ltName]) ? doc.linetypes[ltName].pattern : null;
+    
+    if (!pattern || pattern.length === 0) {
+      vec3.set(x1, y1, z1).applyMatrix4(parentMatrix);
+      context.lines.push(vec3.x, vec3.y, vec3.z);
+      context.colors.push(r, g, b);
+      
+      vec3.set(x2, y2, z2).applyMatrix4(parentMatrix);
+      context.lines.push(vec3.x, vec3.y, vec3.z);
+      context.colors.push(r, g, b);
+      return;
+    }
+
+    // Dashed line logic
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dz = z2 - z1;
+    const totalLength = Math.hypot(dx, dy, dz);
+    
+    if (totalLength < 1e-6) return; // Too short to dash
+
+    const dirX = dx / totalLength;
+    const dirY = dy / totalLength;
+    const dirZ = dz / totalLength;
+    
+    const globalLtScale = doc.units?.ltscale || 1.0;
+    const finalScale = ltScale * globalLtScale;
+    
+    let currentPos = 0;
+    let patIdx = 0;
+    let drawing = true;
+
+    while (currentPos < totalLength) {
+      let dashLen = pattern[patIdx] * finalScale;
+      
+      if (dashLen === 0) {
+        // Dot: draw a very tiny segment
+        dashLen = 0.01 * finalScale;
+        drawing = true;
+      } else if (dashLen > 0) {
+        // Dash
+        drawing = true;
+      } else {
+        // Space
+        dashLen = Math.abs(dashLen);
+        drawing = false;
+      }
+      
+      const nextPos = Math.min(currentPos + dashLen, totalLength);
+      
+      if (drawing) {
+        const sx = x1 + dirX * currentPos;
+        const sy = y1 + dirY * currentPos;
+        const sz = z1 + dirZ * currentPos;
+        
+        const ex = x1 + dirX * nextPos;
+        const ey = y1 + dirY * nextPos;
+        const ez = z1 + dirZ * nextPos;
+        
+        vec3.set(sx, sy, sz).applyMatrix4(parentMatrix);
+        context.lines.push(vec3.x, vec3.y, vec3.z);
+        context.colors.push(r, g, b);
+        
+        vec3.set(ex, ey, ez).applyMatrix4(parentMatrix);
+        context.lines.push(vec3.x, vec3.y, vec3.z);
+        context.colors.push(r, g, b);
+      }
+      
+      currentPos = nextPos;
+      patIdx = (patIdx + 1) % pattern.length;
+    }
+  }
+
   private generate2DPoints(vertices: any[], isClosed: boolean | number, bulgeIndex: number): THREE.Vector2[] {
     const points: THREE.Vector2[] = [];
     if (!vertices || vertices.length < 2) return points;
@@ -135,9 +267,12 @@ export class CadRenderer {
   private buildGeometry(doc: ArcosCadDocument) {
     const context: RenderContext = {
       lines: [],
+      colors: [],
       hatchPositions: [],
       hatchIndices: [],
+      hatchColors: [],
       hatchCurrentIndexOffset: 0,
+
       stats: {
         totalLwpolylines: 0,
         renderedLwpolylines: 0,
@@ -159,24 +294,26 @@ export class CadRenderer {
     const geomEnd = performance.now();
     console.log(`[CadRenderer] Geometry build time: ${(geomEnd - geomStart).toFixed(2)}ms`);
 
-    // 1. Flush Batched Lines
+        // 1. Flush Batched Lines
     if (context.lines.length > 0) {
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute('position', new THREE.Float32BufferAttribute(context.lines, 3));
-      const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+      geometry.setAttribute('color', new THREE.Float32BufferAttribute(context.colors, 3));
+      const material = new THREE.LineBasicMaterial({ vertexColors: true });
       const lineSegments = new THREE.LineSegments(geometry, material);
       lineSegments.renderOrder = 1; 
       this.scene.add(lineSegments);
     }
 
-    // 2. Flush Batched Hatches
+        // 2. Flush Batched Hatches
     if (context.hatchPositions.length > 0) {
       const mergedGeom = new THREE.BufferGeometry();
       mergedGeom.setAttribute('position', new THREE.Float32BufferAttribute(context.hatchPositions, 3));
+      mergedGeom.setAttribute('color', new THREE.Float32BufferAttribute(context.hatchColors, 3));
       mergedGeom.setIndex(context.hatchIndices);
       
       const hatchMaterial = new THREE.MeshBasicMaterial({ 
-        color: 0x444444, 
+        vertexColors: true,
         side: THREE.DoubleSide,
         depthWrite: false,
         polygonOffset: true,
@@ -210,26 +347,32 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     parentMatrix: THREE.Matrix4, 
     doc: ArcosCadDocument, 
     depth: number, 
-    context: RenderContext
+    context: RenderContext,
+    inherited: InheritedStyle = {}
   ) {
     if (depth > 20) {
       console.warn('Max block nesting depth exceeded.');
       return;
     }
 
-    const vec3 = new THREE.Vector3();
+
 
     for (const entity of entities) {
-      if (entity.type === 'LINE') {
+      const color = this.resolveColor(entity, doc, inherited);
+      const r = ((color >> 16) & 255) / 255;
+      const g = ((color >> 8) & 255) / 255;
+      const b = (color & 255) / 255;
+      const ltName = this.resolveLinetype(entity, doc, inherited);
+      const ltScale = (entity.style?.ltscale || 1.0) * (inherited.ltscale || 1.0);
+
+            if (entity.type === 'LINE') {
         const lineEntity = entity as any;
-        vec3.set(lineEntity.geometry.start[0], lineEntity.geometry.start[1], lineEntity.geometry.start[2] || 0);
-        vec3.applyMatrix4(parentMatrix);
-        context.lines.push(vec3.x, vec3.y, vec3.z);
-        
-        vec3.set(lineEntity.geometry.end[0], lineEntity.geometry.end[1], lineEntity.geometry.end[2] || 0);
-        vec3.applyMatrix4(parentMatrix);
-        context.lines.push(vec3.x, vec3.y, vec3.z);
-      } 
+        this.addLineSegment(
+          lineEntity.geometry.start[0], lineEntity.geometry.start[1], lineEntity.geometry.start[2] || 0,
+          lineEntity.geometry.end[0], lineEntity.geometry.end[1], lineEntity.geometry.end[2] || 0,
+          color, ltName, ltScale, doc, parentMatrix, context
+        );
+      }
       else if (entity.type === 'LWPOLYLINE') {
         context.stats.totalLwpolylines++;
         const geometry = (entity as any).geometry;
@@ -249,10 +392,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
           if (Math.abs(x2 - x1) < 1e-10 && Math.abs(y2 - y1) < 1e-10) continue;
 
           if (Math.abs(b) < 1e-6) {
-            vec3.set(x1, y1, z1).applyMatrix4(parentMatrix);
-            context.lines.push(vec3.x, vec3.y, vec3.z);
-            vec3.set(x2, y2, z2).applyMatrix4(parentMatrix);
-            context.lines.push(vec3.x, vec3.y, vec3.z);
+            this.addLineSegment(x1, y1, z1, x2, y2, z2, color, ltName, ltScale, doc, parentMatrix, context);
           } else {
             const dx = x2 - x1;
             const dy = y2 - y1;
@@ -280,11 +420,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
               const currY = isLast ? y2 : cy + R * Math.sin(currentAngle);
               const currZ = isLast ? z2 : z1 + (z2 - z1) * (j / segments);
               
-              vec3.set(prevX, prevY, prevZ).applyMatrix4(parentMatrix);
-              context.lines.push(vec3.x, vec3.y, vec3.z);
-              
-              vec3.set(currX, currY, currZ).applyMatrix4(parentMatrix);
-              context.lines.push(vec3.x, vec3.y, vec3.z);
+              this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
               
               prevX = currX; prevY = currY; prevZ = currZ;
             }
@@ -393,6 +529,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
           if (pos) {
             for (let i = 0; i < pos.count; i++) {
               context.hatchPositions.push(pos.getX(i), pos.getY(i), pos.getZ(i));
+              context.hatchColors.push(r, g, b);
             }
             if (idx) {
               for (let i = 0; i < idx.count; i++) {
@@ -409,22 +546,28 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
           }
         }
       } 
-      else if (entity.type === 'TEXT') {
+            else if (entity.type === 'TEXT') {
         const textEntity = entity as CadTextEntity;
         if (!textEntity.text || !textEntity.geometry?.location) continue;
         
-        const mesh = this.createTextMesh(textEntity.text);
+        const mesh = this.createTextMesh(textEntity);
         if (mesh) {
+          // Apply color (tinting the material)
+          (mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
+          
           mesh.position.set(
             textEntity.geometry.location[0],
             textEntity.geometry.location[1],
             textEntity.geometry.location[2] || 0
           );
+          
+          // Apply CAD rotation
+          if (textEntity.geometry.rotation) {
+             mesh.rotation.z = THREE.MathUtils.degToRad(textEntity.geometry.rotation);
+          }
+          
           mesh.updateMatrix();
-          
           mesh.applyMatrix4(parentMatrix);
-          
-          // Re-decompose matrix so the mesh retains its distinct transformation properties in Three.js
           mesh.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
           
           mesh.renderOrder = 2;
@@ -457,7 +600,11 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
         const finalMatrix = parentMatrix.clone().multiply(insertMat);
 
         context.stats.resolvedInserts++;
-        this.processEntities(block.entities, finalMatrix, doc, depth + 1, context);
+        this.processEntities(block.entities, finalMatrix, doc, depth + 1, context, {
+          color: color,
+          linetype: ltName || undefined,
+          ltscale: ltScale
+        });
       }
       else if (entity.type === 'SPLINE') {
         const spline = entity as CadSplineEntity;
@@ -495,9 +642,12 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
         const segments = 16;
         const points = curve.getPoints(segments);
 
-        for (let j = 0; j < points.length - 1; j++) {
-          context.lines.push(points[j].x, points[j].y, points[j].z);
-          context.lines.push(points[j+1].x, points[j+1].y, points[j+1].z);
+                for (let j = 0; j < points.length - 1; j++) {
+          this.addLineSegment(
+            points[j].x, points[j].y, points[j].z,
+            points[j+1].x, points[j+1].y, points[j+1].z,
+            color, ltName, ltScale, doc, parentMatrix, context
+          );
         }
         
         context.stats.renderedSplines++;
@@ -506,8 +656,11 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     }
   }
 
-  private createTextMesh(text: string): THREE.Mesh | null {
-    const defaultCadHeight = 4.0;
+  private createTextMesh(textEntity: CadTextEntity): THREE.Mesh | null {
+    const text = textEntity.text;
+    const defaultCadHeight = textEntity.geometry.height || 4.0;
+    const halign = textEntity.geometry.halign || 0;
+    const valign = textEntity.geometry.valign || 0;
     
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -523,8 +676,30 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     
     ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = '#ffffff'; 
-    ctx.textBaseline = 'top';
-    ctx.fillText(text, 2, 2);
+    // Handle vertical alignment mapping roughly
+    if (valign === 0) { ctx.textBaseline = 'alphabetic'; }
+    else if (valign === 1) { ctx.textBaseline = 'bottom'; }
+    else if (valign === 2) { ctx.textBaseline = 'middle'; }
+    else if (valign === 3) { ctx.textBaseline = 'top'; }
+    else { ctx.textBaseline = 'alphabetic'; }
+    
+    // Handle horizontal alignment
+    if (halign === 0 || halign === 3 || halign === 5) { ctx.textAlign = 'left'; }
+    else if (halign === 1 || halign === 4) { ctx.textAlign = 'center'; }
+    else if (halign === 2) { ctx.textAlign = 'right'; }
+    else { ctx.textAlign = 'left'; }
+    
+    // Position text on canvas according to alignment
+    let drawX = 2;
+    if (ctx.textAlign === 'center') drawX = canvas.width / 2;
+    if (ctx.textAlign === 'right') drawX = canvas.width - 2;
+    
+    let drawY = canvas.height - 6; // roughly alphabetic baseline
+    if (ctx.textBaseline === 'top') drawY = 2;
+    if (ctx.textBaseline === 'middle') drawY = canvas.height / 2;
+    if (ctx.textBaseline === 'bottom') drawY = canvas.height - 2;
+    
+    ctx.fillText(text, drawX, drawY);
     
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
@@ -540,7 +715,19 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     const planeWidth = planeHeight * aspect;
     
     const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-    geometry.translate(planeWidth / 2, planeHeight / 2, 0);
+        let transX = planeWidth / 2;
+    let transY = planeHeight / 2;
+    
+    // Adjust based on halign (0=Left, 1=Center, 2=Right)
+    if (halign === 1 || halign === 4) transX = 0; // centered
+    if (halign === 2) transX = -planeWidth / 2; // right aligned
+    
+    // Adjust based on valign (0=Baseline, 1=Bottom, 2=Middle, 3=Top)
+    if (valign === 1) transY = planeHeight;
+    if (valign === 2) transY = 0; // centered
+    if (valign === 3) transY = -planeHeight / 2; // top aligned
+
+    geometry.translate(transX, transY, 0);
     
     const mesh = new THREE.Mesh(geometry, material);
     mesh.matrixAutoUpdate = false;
@@ -617,6 +804,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
   }
 
   private handleWheel = (e: WheelEvent) => {
+    if (!hasPermission(PERMISSIONS.CAD_ZOOM)) return;
     e.preventDefault();
 
     const rect = this.container.getBoundingClientRect();
@@ -650,6 +838,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
   };
 
   private handlePointerMove = (e: PointerEvent) => {
+    if (!hasPermission(PERMISSIONS.CAD_PAN)) return;
     if (!this.isDragging) return;
 
     const dx = e.clientX - this.previousPointerPosition.x;

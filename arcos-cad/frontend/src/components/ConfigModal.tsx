@@ -32,7 +32,7 @@ export function ConfigModal({ isOpen, onClose }: ConfigModalProps) {
           className="config-input"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="http://localhost:8000"
+          placeholder="http://192.168.0.100:8000"
         />
         <div className="modal-actions">
           <button onClick={onClose} className="btn text-btn">Cancel</button>

@@ -34,6 +34,7 @@ class ArcosDxfParser:
         # are included -- each entry carries full serialized entities.
         self.blocks = {}
         self.entities = []
+        self.linetypes = {}
         self.bounds = {"min": [0, 0, 0], "max": [0, 0, 0]}
 
     def _add_warning(self, code, message, entity_type=None):
@@ -57,10 +58,24 @@ class ArcosDxfParser:
         self._extract_bounds()
         self._extract_entities()       # Must run before _extract_blocks to collect INSERT refs
         self._extract_blocks()         # Phase 5.5: after entities so we know which blocks are needed
+        self._extract_linetypes()      # Phase 5.9A: extract linetype patterns
 
         self.stats["parsingTimeMs"] = int((time.time() - start_time) * 1000)
 
-        return {
+        import math
+
+        def sanitize_floats(obj):
+            if isinstance(obj, float):
+                if math.isnan(obj) or math.isinf(obj):
+                    return None
+                return obj
+            elif isinstance(obj, dict):
+                return {k: sanitize_floats(v) for k, v in obj.items()}
+            elif isinstance(obj, list):
+                return [sanitize_floats(v) for v in obj]
+            return obj
+
+        return sanitize_floats({
             "version": "1.0",
             "document": {
                 "name": self.filepath.split("/")[-1].split("\\")[-1],
@@ -68,31 +83,46 @@ class ArcosDxfParser:
             },
             "units": {
                 "name": None,
-                "code": None
+                "code": None,
+                "ltscale": self.doc.header.get("$LTSCALE", 1.0)
             },
             "bounds": self.bounds,
             "layers": self.layers,
+            "linetypes": self.linetypes,
             "blocks": self.blocks,
             "layouts": [],
             "entities": self.entities,
             "statistics": self.stats,
             "warnings": self.warnings
-        }
+        })
 
     # ------------------------------------------------------------------
     # Layer extraction (unchanged)
     # ------------------------------------------------------------------
 
+    def _extract_linetypes(self):
+        for lt in self.doc.linetypes:
+            name = lt.dxf.name
+            pattern = []
+            if hasattr(lt, "pattern_tags") and hasattr(lt.pattern_tags, "tags"):
+                pattern = [t.value for t in lt.pattern_tags.tags if t.code == 49]
+            self.linetypes[name] = {
+                "pattern": pattern
+            }
+
     def _extract_layers(self):
         for layer in self.doc.layers:
-            self.layers.append({
+            layer_info = {
                 "name": layer.dxf.name,
                 "color": layer.dxf.color,
                 "linetype": layer.dxf.linetype,
                 "visible": layer.is_on(),
                 "frozen": layer.is_frozen(),
                 "locked": layer.is_locked()
-            })
+            }
+            if layer.dxf.hasattr("true_color"):
+                layer_info["trueColor"] = layer.dxf.true_color
+            self.layers.append(layer_info)
         self.stats["layers"] = len(self.layers)
 
     # ------------------------------------------------------------------
@@ -297,15 +327,21 @@ class ArcosDxfParser:
     # ------------------------------------------------------------------
 
     def _base_props(self, entity):
+        style = {
+            "color": entity.dxf.color,
+            "linetype": entity.dxf.linetype if entity.dxf.hasattr("linetype") else None,
+            "lineweight": entity.dxf.lineweight if entity.dxf.hasattr("lineweight") else None
+        }
+        if entity.dxf.hasattr("true_color"):
+            style["trueColor"] = entity.dxf.true_color
+        if entity.dxf.hasattr("ltscale"):
+            style["ltscale"] = entity.dxf.ltscale
+
         return {
             "id": entity.dxf.handle,
             "type": entity.dxftype(),
             "layer": entity.dxf.layer,
-            "style": {
-                "color": entity.dxf.color,
-                "linetype": entity.dxf.linetype if entity.dxf.hasattr("linetype") else None,
-                "lineweight": entity.dxf.lineweight if entity.dxf.hasattr("lineweight") else None
-            }
+            "style": style
         }
 
     # ------------------------------------------------------------------

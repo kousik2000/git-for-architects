@@ -6,6 +6,7 @@ export interface CadDocumentInfo {
 export interface CadUnits {
   name: string | null;
   code: string | null;
+  ltscale?: number | null; // Added in 5.9A
 }
 
 export interface CadBounds {
@@ -16,6 +17,7 @@ export interface CadBounds {
 export interface CadLayer {
   name: string;
   color: number;
+  trueColor?: number | null; // Added in 5.9A
   linetype: string | null;
   visible: boolean;
   frozen: boolean;
@@ -30,8 +32,10 @@ export interface CadBlock {
 
 export interface CadStyle {
   color: number;
+  trueColor?: number | null; // Added in 5.9A
   linetype: string | null;
   lineweight: number | null;
+  ltscale?: number | null; // Added in 5.9A
 }
 
 export interface CadEntityBase {
@@ -80,6 +84,10 @@ export interface CadTextEntity extends CadEntityBase {
   text: string;
   geometry: {
     location: [number, number, number];
+    height?: number; // Added in 5.9A
+    rotation?: number; // Added in 5.9A
+    halign?: number; // Added in 5.9A
+    valign?: number; // Added in 5.9A
   };
 }
 
@@ -131,6 +139,13 @@ export interface CadWarning {
   entityType?: string;
 }
 
+export interface CadLinetype {
+  name: string;
+  description: string;
+  pattern: number[];
+  length: number;
+}
+
 export interface ArcosCadDocument {
   version: string;
   document: CadDocumentInfo;
@@ -142,6 +157,7 @@ export interface ArcosCadDocument {
   entities: CadEntity[];
   statistics: CadStatistics;
   warnings: CadWarning[];
+  linetypes?: Record<string, CadLinetype>; // Added in 5.9A
 }
 
 export interface CadParseResponse {

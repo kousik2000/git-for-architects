@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { CadRenderer } from '../../cad/renderer/CadRenderer';
 import type { ArcosCadDocument } from '../../types/cad-json';
+import { hasPermission } from '../../permissions/permission-service';
+import { PERMISSIONS } from '../../permissions/permissions';
 import './CadViewer.css';
 
 interface CadViewerProps {
@@ -35,15 +37,18 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
   }, [document]);
 
   const handleFit = () => {
-    if (rendererRef.current) {
+    if (rendererRef.current && hasPermission(PERMISSIONS.CAD_FIT)) {
       rendererRef.current.fitToDrawing();
     }
   };
 
+  const canFit = hasPermission(PERMISSIONS.CAD_FIT);
+  const canClose = hasPermission(PERMISSIONS.CAD_CLOSE);
+
   return (
     <div className="cad-viewer-container">
       <div className="cad-viewer-toolbar">
-        <span>ARCOS CAD VIEWER (Phase 5.8)</span>
+        <span>ARCOS CAD VIEWER</span>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           {document && (
             <span className="cad-viewer-stats" style={{ fontSize: '0.9em' }}>
@@ -53,11 +58,13 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
               TEXT: {document.statistics.entityTypes['TEXT'] || 0} | 
               HATCH: {document.statistics.entityTypes['HATCH'] || 0} |
               INSERT: {document.statistics.entityTypes['INSERT'] || 0} |
-              SPLINE: 208
+              SPLINE: {document.statistics.entityTypes['SPLINE'] || 0}
             </span>
           )}
-          <button onClick={handleFit} style={{ padding: '4px 10px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Fit to Drawing</button>
-          {onClose && (
+          {canFit && (
+            <button onClick={handleFit} style={{ padding: '4px 10px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Fit to Drawing</button>
+          )}
+          {onClose && canClose && (
             <button onClick={onClose} style={{ padding: '4px 10px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Close Viewer</button>
           )}
         </div>
