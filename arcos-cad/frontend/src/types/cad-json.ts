@@ -80,7 +80,7 @@ export interface CadHatchEntity extends CadEntityBase {
 }
 
 export interface CadTextEntity extends CadEntityBase {
-  type: 'TEXT';
+  type: 'TEXT' | 'MTEXT';
   text: string;
   geometry: {
     location: [number, number, number];
@@ -117,11 +117,18 @@ export interface CadSplineEntity extends CadEntityBase {
 
 // We map all unsupported/unknown entity types to a generic interface for now
 export interface CadGenericEntity extends CadEntityBase {
-  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT' | 'SPLINE'>;
+  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT' | 'SPLINE' | 'DIMENSION' | 'LEADER' | 'MLEADER' | 'ARC_DIMENSION'>;
   geometry: any;
 }
 
-export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadSplineEntity | CadGenericEntity;
+export interface CadDimensionEntity extends CadEntityBase {
+  type: 'DIMENSION' | 'LEADER' | 'MLEADER' | 'ARC_DIMENSION';
+  geometry: {
+    virtualEntities: CadEntity[];
+  };
+}
+
+export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadSplineEntity | CadDimensionEntity | CadGenericEntity;
 
 export interface CadStatistics {
   totalEntities: number;
@@ -130,6 +137,14 @@ export interface CadStatistics {
   layers: number;
   blocks: number;
   parsingTimeMs: number;
+  renderedArcs: number;
+  renderedEllipses: number;
+  renderedPoints: number;
+  renderedDimensions: number;
+  renderedLeaders: number;
+  renderedMLeaders: number;
+  renderedArcDimensions: number;
+  renderedMTexts: number;
   entityTypes: Record<string, number>;
 }
 
@@ -146,6 +161,11 @@ export interface CadLinetype {
   length: number;
 }
 
+export interface CadLayout {
+  name: string;
+  entities: CadEntity[];
+}
+
 export interface ArcosCadDocument {
   version: string;
   document: CadDocumentInfo;
@@ -153,7 +173,7 @@ export interface ArcosCadDocument {
   bounds: CadBounds;
   layers: CadLayer[];
   blocks: Record<string, CadBlock>;
-  layouts: any[];
+  layouts: Record<string, CadLayout>;
   entities: CadEntity[];
   statistics: CadStatistics;
   warnings: CadWarning[];

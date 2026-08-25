@@ -10,6 +10,13 @@ export const PERMISSIONS = {
   CAD_FIT: 'cad.fit',
   CAD_CLOSE: 'cad.close',
 
+  // Layouts
+  CAD_LAYOUTS_VIEW: 'cad.layouts.view',
+  CAD_LAYOUT_SWITCH: 'cad.layout.switch',
+  CAD_DIMENSION_VIEW: 'cad.dimension.view',
+  CAD_LEADER_VIEW: 'cad.leader.view',
+  CAD_MLEADER_VIEW: 'cad.mleader.view',
+
   // Layers
   CAD_LAYERS_VIEW: 'cad.layers.view',
   CAD_LAYERS_TOGGLE: 'cad.layers.toggle',

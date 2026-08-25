@@ -33,6 +33,7 @@ class ArcosDxfParser:
         # Only blocks referenced (directly or transitively) by modelspace INSERTs
         # are included -- each entry carries full serialized entities.
         self.blocks = {}
+        self.layouts = {} # Phase 5.11B: PaperSpace layouts
         self.entities = []
         self.linetypes = {}
         self.bounds = {"min": [0, 0, 0], "max": [0, 0, 0]}
@@ -57,6 +58,7 @@ class ArcosDxfParser:
         self._extract_layers()
         self._extract_bounds()
         self._extract_entities()       # Must run before _extract_blocks to collect INSERT refs
+        self._extract_layouts()        # Phase 5.11B: extract PaperSpace layouts
         self._extract_blocks()         # Phase 5.5: after entities so we know which blocks are needed
         self._extract_linetypes()      # Phase 5.9A: extract linetype patterns
 
@@ -90,7 +92,7 @@ class ArcosDxfParser:
             "layers": self.layers,
             "linetypes": self.linetypes,
             "blocks": self.blocks,
-            "layouts": [],
+            "layouts": self.layouts,
             "entities": self.entities,
             "statistics": self.stats,
             "warnings": self.warnings
@@ -196,15 +198,21 @@ class ArcosDxfParser:
     def _extract_blocks(self):
         """
         Build the blocks dict containing only blocks referenced (directly or
-        transitively) by INSERT entities in the modelspace.
+        transitively) by INSERT entities in the modelspace and layouts.
         Each block entry carries full serialized entities using the same parsers
         as the modelspace.
         """
-        # Collect all directly referenced block names from parsed entities
+        # Collect all directly referenced block names from parsed entities (Modelspace)
         directly_referenced = set()
         for entity in self.entities:
             if entity.get("type") == "INSERT":
                 directly_referenced.add(entity["blockName"])
+
+        # Phase 5.11B: Collect from PaperSpace layouts as well
+        for layout_name, layout_data in self.layouts.items():
+            for entity in layout_data.get("entities", []):
+                if entity.get("type") == "INSERT":
+                    directly_referenced.add(entity["blockName"])
 
         # Recursively expand to include transitively nested blocks
         needed_blocks = set()
@@ -242,6 +250,7 @@ class ArcosDxfParser:
         """
         result = []
         for entity in block:
+            self.stats["totalEntities"] += 1
             e_type = entity.dxftype()
             parsed = None
             try:
@@ -263,9 +272,13 @@ class ArcosDxfParser:
                     parsed = self._parse_text(entity)
                 elif e_type == "HATCH":
                     parsed = self._parse_hatch(entity)
+                elif e_type == "SOLID":
+                    parsed = self._parse_solid(entity)
                 elif e_type == "INSERT":
                     # Preserve nested INSERT as a reference -- do NOT expand recursively
                     parsed = self._parse_insert(entity)
+                elif e_type in ["DIMENSION", "LEADER", "MLEADER", "ARC_DIMENSION"]:
+                    parsed = self._parse_dimension(entity)
                 # else: silently skip ATTDEF, SEQEND, SOLID, and other block-internal types
             except Exception as ex:
                 self._add_warning(
@@ -308,8 +321,12 @@ class ArcosDxfParser:
                     parsed = self._parse_text(entity)
                 elif e_type == "HATCH":
                     parsed = self._parse_hatch(entity)
+                elif e_type == "SOLID":
+                    parsed = self._parse_solid(entity)
                 elif e_type == "INSERT":
                     parsed = self._parse_insert(entity)
+                elif e_type in ["DIMENSION", "LEADER", "MLEADER", "ARC_DIMENSION"]:
+                    parsed = self._parse_dimension(entity)
                 else:
                     # Intentionally filtered: IMAGE, OLE2FRAME, etc.
                     self.stats["unsupportedEntities"] += 1
@@ -321,6 +338,62 @@ class ArcosDxfParser:
             if parsed:
                 self.stats["supportedEntities"] += 1
                 self.entities.append(parsed)
+
+    # ------------------------------------------------------------------
+    # PaperSpace entity extraction -- Phase 5.11B
+    # ------------------------------------------------------------------
+
+    def _extract_layouts(self):
+        for layout in self.doc.layouts:
+            if layout.name == 'Model':
+                continue # Modelspace is handled in _extract_entities
+
+            layout_entities = []
+            for entity in layout:
+                self.stats["totalEntities"] += 1
+                e_type = entity.dxftype()
+                
+                parsed = None
+                try:
+                    if e_type == "LINE":
+                        parsed = self._parse_line(entity)
+                    elif e_type == "CIRCLE":
+                        parsed = self._parse_circle(entity)
+                    elif e_type == "ARC":
+                        parsed = self._parse_arc(entity)
+                    elif e_type in ["LWPOLYLINE", "POLYLINE"]:
+                        parsed = self._parse_polyline(entity)
+                    elif e_type == "ELLIPSE":
+                        parsed = self._parse_ellipse(entity)
+                    elif e_type == "SPLINE":
+                        parsed = self._parse_spline(entity)
+                    elif e_type == "POINT":
+                        parsed = self._parse_point(entity)
+                    elif e_type in ["TEXT", "MTEXT"]:
+                        parsed = self._parse_text(entity)
+                    elif e_type == "HATCH":
+                        parsed = self._parse_hatch(entity)
+                    elif e_type == "SOLID":
+                        parsed = self._parse_solid(entity)
+                    elif e_type == "INSERT":
+                        parsed = self._parse_insert(entity)
+                    elif e_type in ["DIMENSION", "LEADER", "MLEADER", "ARC_DIMENSION"]:
+                        parsed = self._parse_dimension(entity)
+                    else:
+                        self.stats["unsupportedEntities"] += 1
+                        self._add_warning("UNSUPPORTED_LAYOUT_ENTITY", "Entity type not fully mapped.", e_type)
+                except Exception as e:
+                    self.stats["unsupportedEntities"] += 1
+                    self._add_warning("LAYOUT_ENTITY_PARSE_ERROR", str(e), e_type)
+                    
+                if parsed:
+                    self.stats["supportedEntities"] += 1
+                    layout_entities.append(parsed)
+                    
+            self.layouts[layout.name] = {
+                "name": layout.name,
+                "entities": layout_entities
+            }
 
     # ------------------------------------------------------------------
     # Base properties helper (unchanged)
@@ -476,26 +549,48 @@ class ArcosDxfParser:
         geometry = {"location": location}
 
         # Optional TEXT metadata -- include only when actually present in the DXF
-        height = entity.dxf.get("height", None)
+        try:
+            height = entity.dxf.get("height", None)
+        except Exception:
+            try:
+                height = entity.dxf.get("char_height", None)
+            except Exception:
+                height = None
+
         if height is not None:
             geometry["height"] = height
 
-        rotation = entity.dxf.get("rotation", None)
+        try:
+            rotation = entity.dxf.get("rotation", None)
+        except Exception:
+            try:
+                rotation = entity.dxf.get("text_direction", None)
+            except Exception:
+                rotation = None
+                
         if rotation is not None:
             geometry["rotation"] = rotation
 
-        halign = entity.dxf.get("halign", None)
-        if halign is not None:
-            geometry["halign"] = halign
+        try:
+            halign = entity.dxf.get("halign", None)
+            if halign is not None:
+                geometry["halign"] = halign
+        except Exception:
+            pass
 
-        valign = entity.dxf.get("valign", None)
-        if valign is not None:
-            geometry["valign"] = valign
+        try:
+            valign = entity.dxf.get("valign", None)
+            if valign is not None:
+                geometry["valign"] = valign
+        except Exception:
+            pass
 
         props["geometry"] = geometry
 
         # text at top level (existing convention)
-        if entity.dxf.hasattr("text"):
+        if entity.dxftype() == "MTEXT" and hasattr(entity, "plain_text"):
+            props["text"] = entity.plain_text()
+        elif entity.dxf.hasattr("text"):
             props["text"] = entity.dxf.text
         elif hasattr(entity, "text"):
             props["text"] = entity.text
@@ -644,3 +739,61 @@ class ArcosDxfParser:
             ]
         }
         return props
+
+    def _parse_solid(self, entity):
+        style = self._get_style(entity)
+        vertices = []
+        try:
+            vertices.append([entity.dxf.vtx0.x, entity.dxf.vtx0.y, entity.dxf.vtx0.z])
+            vertices.append([entity.dxf.vtx1.x, entity.dxf.vtx1.y, entity.dxf.vtx1.z])
+            vertices.append([entity.dxf.vtx2.x, entity.dxf.vtx2.y, entity.dxf.vtx2.z])
+            if hasattr(entity.dxf, 'vtx3') and entity.dxf.vtx3 is not None:
+                vertices.append([entity.dxf.vtx3.x, entity.dxf.vtx3.y, entity.dxf.vtx3.z])
+            else:
+                vertices.append([entity.dxf.vtx2.x, entity.dxf.vtx2.y, entity.dxf.vtx2.z])
+        except Exception:
+            return None
+        return { 'type': 'SOLID', 'layer': entity.dxf.layer, 'style': style, 'geometry': { 'vertices': vertices } }
+
+    def _parse_dimension(self, entity):
+        props = self._base_props(entity)
+        virtual_entities = []
+        try:
+            for v_ent in entity.virtual_entities():
+                e_type = v_ent.dxftype()
+                parsed = None
+                try:
+                    if e_type == "LINE":
+                        parsed = self._parse_line(v_ent)
+                    elif e_type == "CIRCLE":
+                        parsed = self._parse_circle(v_ent)
+                    elif e_type == "ARC":
+                        parsed = self._parse_arc(v_ent)
+                    elif e_type in ["LWPOLYLINE", "POLYLINE"]:
+                        parsed = self._parse_polyline(v_ent)
+                    elif e_type == "ELLIPSE":
+                        parsed = self._parse_ellipse(v_ent)
+                    elif e_type == "SPLINE":
+                        parsed = self._parse_spline(v_ent)
+                    elif e_type == "POINT":
+                        parsed = self._parse_point(v_ent)
+                    elif e_type in ["TEXT", "MTEXT"]:
+                        parsed = self._parse_text(v_ent)
+                    elif e_type == "HATCH":
+                        parsed = self._parse_hatch(v_ent)
+                    elif e_type == "SOLID":
+                        parsed = self._parse_solid(v_ent)
+                    elif e_type == "INSERT":
+                        parsed = self._parse_insert(v_ent)
+                except Exception:
+                    pass
+                if parsed:
+                    virtual_entities.append(parsed)
+        except Exception as ex:
+            self._add_warning("DIMENSION_VIRTUAL_ENTITIES_ERROR", str(ex), entity.dxftype())
+            
+        props["geometry"] = {
+            "virtualEntities": virtual_entities
+        }
+        return props
+

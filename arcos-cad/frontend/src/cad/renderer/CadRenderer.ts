@@ -16,6 +16,7 @@ interface RenderContext {
   hatchIndices: number[];
   hatchColors: number[]; // Added for hatch vertex colors
   hatchCurrentIndexOffset: number;
+  textMeshes: THREE.Mesh[];
   
   stats: {
     totalLwpolylines: number;
@@ -28,10 +29,20 @@ interface RenderContext {
     renderedSplines: number;
     unsupportedSplines: number;
     splineSegments: number;
+    renderedCircles: number;
+    renderedArcs: number;
+    renderedEllipses: number;
+    renderedPoints: number;
+    renderedDimensions: number;
+    renderedLeaders: number;
+    renderedMLeaders: number;
+    renderedArcDimensions: number;
+    renderedMTexts: number;
   };
 }
 
 interface InheritedStyle {
+  layer?: string;
   color?: number;
   linetype?: string;
   lineweight?: number;
@@ -45,10 +56,12 @@ export class CadRenderer {
   private camera: THREE.OrthographicCamera;
   private resizeObserver: ResizeObserver;
   private animationFrameId: number | null = null;
+  private layerGroups = new Map<string, THREE.Group>();
   private isDisposed = false;
 
   private docBoundsMin: [number, number, number] | null = null;
   private docBoundsMax: [number, number, number] | null = null;
+  private activeDoc: ArcosCadDocument | null = null;
 
   private isDragging = false;
   private previousPointerPosition = { x: 0, y: 0 };
@@ -80,18 +93,44 @@ export class CadRenderer {
     this.animate();
   }
 
+  
+  public setLayerVisibility(layerName: string, visible: boolean) {
+    const group = this.layerGroups.get(layerName);
+    if (group) {
+      group.visible = visible;
+      this.renderer.render(this.scene, this.camera); // re-render on change
+    }
+  }
+
   public loadDocument(doc: ArcosCadDocument) {
     if (this.isDisposed) return;
-    this.clearScene();
-    
-    const startTime = performance.now();
-    this.buildGeometry(doc);
-    const endTime = performance.now();
-    
-    console.log(`[CadRenderer] Total initialization time: ${(endTime - startTime).toFixed(2)}ms`);
-    
+    this.activeDoc = doc;
     this.docBoundsMin = doc.bounds.min;
     this.docBoundsMax = doc.bounds.max;
+    this.renderSpace('model');
+  }
+
+  public renderSpace(spaceType: 'model' | 'layout', layoutName?: string) {
+    if (!this.activeDoc) return;
+    this.clearScene();
+    
+    let entitiesToRender: CadEntity[] = [];
+    if (spaceType === 'model') {
+      entitiesToRender = this.activeDoc.entities;
+    } else if (spaceType === 'layout' && layoutName) {
+      const layout = this.activeDoc.layouts[layoutName];
+      if (layout) {
+        entitiesToRender = layout.entities;
+      }
+    }
+    
+    const startTime = performance.now();
+    this.buildGeometry(entitiesToRender, this.activeDoc);
+    const endTime = performance.now();
+    
+    console.log(`[CadRenderer] renderSpace(${spaceType}, ${layoutName || ''}) time: ${(endTime - startTime).toFixed(2)}ms`);
+    
+    // Fallback to document bounds
     this.fitToDrawing();
   }
 
@@ -264,81 +303,119 @@ export class CadRenderer {
     return points;
   }
 
-  private buildGeometry(doc: ArcosCadDocument) {
-    const context: RenderContext = {
-      lines: [],
-      colors: [],
-      hatchPositions: [],
-      hatchIndices: [],
-      hatchColors: [],
-      hatchCurrentIndexOffset: 0,
-
-      stats: {
-        totalLwpolylines: 0,
-        renderedLwpolylines: 0,
-        renderedHatches: 0,
-        hatchTriangles: 0,
-        renderedTexts: 0,
-        resolvedInserts: 0,
-        skippedInserts: 0,
-        renderedSplines: 0,
-        unsupportedSplines: 0,
-        splineSegments: 0
+  private buildGeometry(entities: CadEntity[], doc: ArcosCadDocument) {
+    const layerContexts = new Map<string, RenderContext>();
+    this.layerGroups.clear();
+    
+    const getContext = (layer: string) => {
+      if (!layerContexts.has(layer)) {
+        layerContexts.set(layer, {
+          lines: [], colors: [],
+          hatchPositions: [], hatchIndices: [], hatchColors: [], hatchCurrentIndexOffset: 0, textMeshes: [],
+          stats: {
+            totalLwpolylines: 0, renderedLwpolylines: 0, renderedHatches: 0,
+            hatchTriangles: 0, renderedTexts: 0, resolvedInserts: 0,
+            skippedInserts: 0, renderedSplines: 0, unsupportedSplines: 0, splineSegments: 0, renderedCircles: 0, renderedArcs: 0, renderedEllipses: 0, renderedPoints: 0,
+            renderedDimensions: 0, renderedLeaders: 0, renderedMLeaders: 0, renderedArcDimensions: 0, renderedMTexts: 0
+          }
+        });
       }
+      return layerContexts.get(layer)!;
+    };
+
+    const aggregatedStats = {
+      totalLwpolylines: 0, renderedLwpolylines: 0, renderedHatches: 0,
+      hatchTriangles: 0, renderedTexts: 0, resolvedInserts: 0,
+      skippedInserts: 0, renderedSplines: 0, unsupportedSplines: 0, splineSegments: 0, renderedCircles: 0, renderedArcs: 0, renderedEllipses: 0, renderedPoints: 0,
+      renderedDimensions: 0, renderedLeaders: 0, renderedMLeaders: 0, renderedArcDimensions: 0, renderedMTexts: 0
     };
 
     const identityMatrix = new THREE.Matrix4();
     
     const geomStart = performance.now();
-    this.processEntities(doc.entities, identityMatrix, doc, 0, context);
+    this.processEntities(entities, identityMatrix, doc, 0, getContext, aggregatedStats);
     const geomEnd = performance.now();
-    console.log(`[CadRenderer] Geometry build time: ${(geomEnd - geomStart).toFixed(2)}ms`);
+    console.log(`[CadRenderer] Geometry loop time: ${(geomEnd - geomStart).toFixed(2)}ms`);
 
-        // 1. Flush Batched Lines
-    if (context.lines.length > 0) {
-      const geometry = new THREE.BufferGeometry();
-      geometry.setAttribute('position', new THREE.Float32BufferAttribute(context.lines, 3));
-      geometry.setAttribute('color', new THREE.Float32BufferAttribute(context.colors, 3));
-      const material = new THREE.LineBasicMaterial({ vertexColors: true });
-      const lineSegments = new THREE.LineSegments(geometry, material);
-      lineSegments.renderOrder = 1; 
-      this.scene.add(lineSegments);
-    }
+        // Flush Batched Geometries Per Layer
+    let totalLineVertices = 0;
+    let totalHatchVertices = 0;
 
-        // 2. Flush Batched Hatches
-    if (context.hatchPositions.length > 0) {
-      const mergedGeom = new THREE.BufferGeometry();
-      mergedGeom.setAttribute('position', new THREE.Float32BufferAttribute(context.hatchPositions, 3));
-      mergedGeom.setAttribute('color', new THREE.Float32BufferAttribute(context.hatchColors, 3));
-      mergedGeom.setIndex(context.hatchIndices);
+    layerContexts.forEach((ctx, layerName) => {
+      const group = new THREE.Group();
+      group.name = `layer_${layerName}`;
       
-      const hatchMaterial = new THREE.MeshBasicMaterial({ 
-        vertexColors: true,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-        polygonOffset: true,
-        polygonOffsetFactor: 1,
-        polygonOffsetUnits: 1
-      });
+      // Determine initial visibility from CAD JSON
+      const docLayer = doc.layers.find(l => l.name === layerName);
+      if (docLayer) {
+        if (!docLayer.visible || docLayer.frozen) {
+          group.visible = false;
+        }
+      }
+
+      if (ctx.lines.length > 0) {
+        totalLineVertices += ctx.lines.length / 3;
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(ctx.lines, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(ctx.colors, 3));
+        const material = new THREE.LineBasicMaterial({ vertexColors: true });
+        const lineSegments = new THREE.LineSegments(geometry, material);
+        lineSegments.renderOrder = 1; 
+        group.add(lineSegments);
+      }
+
+      if (ctx.hatchPositions.length > 0) {
+        totalHatchVertices += ctx.hatchPositions.length / 3;
+        const mergedGeom = new THREE.BufferGeometry();
+        mergedGeom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.hatchPositions, 3));
+        mergedGeom.setAttribute('color', new THREE.Float32BufferAttribute(ctx.hatchColors, 3));
+        mergedGeom.setIndex(ctx.hatchIndices);
+        
+        const hatchMaterial = new THREE.MeshBasicMaterial({ 
+          vertexColors: true,
+          side: THREE.DoubleSide,
+          depthWrite: false,
+          polygonOffset: true,
+          polygonOffsetFactor: 1,
+          polygonOffsetUnits: 1
+        });
+        
+        const hatchMesh = new THREE.Mesh(mergedGeom, hatchMaterial);
+        hatchMesh.renderOrder = 0; 
+        group.add(hatchMesh);
+      }
       
-      const hatchMesh = new THREE.Mesh(mergedGeom, hatchMaterial);
-      hatchMesh.renderOrder = 0; 
-      this.scene.add(hatchMesh);
-    }
+      // Add text meshes stored in ctx? Wait, texts are currently added directly to scene!
+      // We should add texts to the group instead.
+      
+      ctx.textMeshes.forEach(mesh => group.add(mesh));
+      this.scene.add(group);
+      this.layerGroups.set(layerName, group);
+    });
+
 
     console.log(`
 --- PHASE 5.8 RENDER STATISTICS ---
-LWPOLYLINE Processed: ${context.stats.renderedLwpolylines}
-HATCH Processed: ${context.stats.renderedHatches}
-HATCH Triangles: ${Math.floor(context.stats.hatchTriangles)}
-TEXT Processed: ${context.stats.renderedTexts}
-INSERT Resolved: ${context.stats.resolvedInserts}
-INSERT Skipped: ${context.stats.skippedInserts}
-SPLINE Processed: ${context.stats.renderedSplines}
-SPLINE Segments: ${context.stats.splineSegments}
-Unsupported SPLINEs: ${context.stats.unsupportedSplines}
-Batched Line Vertices: ${context.lines.length / 3}
-Batched Hatch Vertices: ${context.hatchPositions.length / 3}
+LWPOLYLINE Processed: ${aggregatedStats.renderedLwpolylines}
+HATCH Processed: ${aggregatedStats.renderedHatches}
+HATCH Triangles: ${Math.floor(aggregatedStats.hatchTriangles)}
+TEXT Processed: ${aggregatedStats.renderedTexts}
+MTEXT Processed: ${aggregatedStats.renderedMTexts}
+INSERT Resolved: ${aggregatedStats.resolvedInserts}
+INSERT Skipped: ${aggregatedStats.skippedInserts}
+SPLINE Processed: ${aggregatedStats.renderedSplines}
+SPLINE Segments: ${aggregatedStats.splineSegments}
+Unsupported SPLINEs: ${aggregatedStats.unsupportedSplines}
+CIRCLE Processed: ${aggregatedStats.renderedCircles}
+ARC Processed: ${aggregatedStats.renderedArcs}
+ELLIPSE Processed: ${aggregatedStats.renderedEllipses}
+POINT Processed: ${aggregatedStats.renderedPoints}
+DIMENSION Processed: ${aggregatedStats.renderedDimensions}
+LEADER Processed: ${aggregatedStats.renderedLeaders}
+MLEADER Processed: ${aggregatedStats.renderedMLeaders}
+ARC_DIMENSION Processed: ${aggregatedStats.renderedArcDimensions}
+Batched Line Vertices: ${totalLineVertices}
+Batched Hatch Vertices: ${totalHatchVertices}
     `);
   }
 
@@ -347,7 +424,8 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     parentMatrix: THREE.Matrix4, 
     doc: ArcosCadDocument, 
     depth: number, 
-    context: RenderContext,
+    getContext: (layer: string) => RenderContext,
+    aggregatedStats: any,
     inherited: InheritedStyle = {}
   ) {
     if (depth > 20) {
@@ -358,6 +436,9 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
 
 
     for (const entity of entities) {
+      const effectiveLayer = (entity.layer === '0' && inherited.layer) ? inherited.layer : entity.layer;
+      const context = getContext(effectiveLayer);
+      
       const color = this.resolveColor(entity, doc, inherited);
       const r = ((color >> 16) & 255) / 255;
       const g = ((color >> 8) & 255) / 255;
@@ -374,12 +455,12 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
         );
       }
       else if (entity.type === 'LWPOLYLINE') {
-        context.stats.totalLwpolylines++;
+        aggregatedStats.totalLwpolylines++;
         const geometry = (entity as any).geometry;
         const vertices = geometry.vertices;
         if (!vertices || vertices.length < 2) continue;
         
-        context.stats.renderedLwpolylines++;
+        aggregatedStats.renderedLwpolylines++;
         const numSegments = geometry.closed ? vertices.length : vertices.length - 1;
         
         for (let i = 0; i < numSegments; i++) {
@@ -427,12 +508,132 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
           }
         }
       } 
+      
+      else if (entity.type === 'CIRCLE') {
+        aggregatedStats.renderedCircles++;
+        const circle = entity as any;
+        const cx = circle.geometry.center[0];
+        const cy = circle.geometry.center[1];
+        const cz = circle.geometry.center[2] || 0;
+        const R = circle.geometry.radius;
+        const segments = 64; // DEFAULT_CURVE_SEGMENTS
+        const step = (Math.PI * 2) / segments;
+        
+        let prevX = cx + R;
+        let prevY = cy;
+        let prevZ = cz;
+        
+        for (let j = 1; j <= segments; j++) {
+          const currentAngle = step * j;
+          const currX = cx + R * Math.cos(currentAngle);
+          const currY = cy + R * Math.sin(currentAngle);
+          const currZ = cz;
+          
+          this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
+          
+          prevX = currX; prevY = currY; prevZ = currZ;
+        }
+      }
+      else if (entity.type === 'ARC') {
+        aggregatedStats.renderedArcs++;
+        const arc = entity as any;
+        const cx = arc.geometry.center[0];
+        const cy = arc.geometry.center[1];
+        const cz = arc.geometry.center[2] || 0;
+        const R = arc.geometry.radius;
+        let startAngle = arc.geometry.startAngle;
+        let endAngle = arc.geometry.endAngle;
+        
+        // Convert to radians if they are in degrees (ezdxf usually gives degrees for arcs, wait: ezdxf arcs are in degrees)
+        // Let's check dummy json: startAngle is e.g., 270, 90. They are degrees!
+        startAngle = startAngle * Math.PI / 180;
+        endAngle = endAngle * Math.PI / 180;
+        
+        let angleDiff = endAngle - startAngle;
+        if (angleDiff < 0) angleDiff += Math.PI * 2;
+        
+        const DEFAULT_CURVE_SEGMENTS = 64;
+        const segments = Math.max(8, Math.min(128, Math.ceil(DEFAULT_CURVE_SEGMENTS * Math.abs(angleDiff) / (Math.PI * 2))));
+        const step = angleDiff / segments;
+        
+        let prevX = cx + R * Math.cos(startAngle);
+        let prevY = cy + R * Math.sin(startAngle);
+        let prevZ = cz;
+        
+        for (let j = 1; j <= segments; j++) {
+          const currentAngle = startAngle + step * j;
+          const currX = cx + R * Math.cos(currentAngle);
+          const currY = cy + R * Math.sin(currentAngle);
+          const currZ = cz;
+          
+          this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
+          
+          prevX = currX; prevY = currY; prevZ = currZ;
+        }
+      }
+      else if (entity.type === 'ELLIPSE') {
+        aggregatedStats.renderedEllipses++;
+        const ellipse = entity as any;
+        const cx = ellipse.geometry.center[0];
+        const cy = ellipse.geometry.center[1];
+        const cz = ellipse.geometry.center[2] || 0;
+        const mx = ellipse.geometry.majorAxis[0];
+        const my = ellipse.geometry.majorAxis[1];
+        const mz = ellipse.geometry.majorAxis[2] || 0;
+        const ratio = ellipse.geometry.ratio;
+        const startParam = ellipse.geometry.startParam; // in radians for ellipse in dxf
+        const endParam = ellipse.geometry.endParam;
+        
+        const majorLen = Math.hypot(mx, my, mz);
+        const minorLen = majorLen * ratio;
+        
+        // The major axis vector defines the rotation of the ellipse
+        const angle = Math.atan2(my, mx);
+        
+        let angleDiff = endParam - startParam;
+        if (angleDiff < 0) angleDiff += Math.PI * 2;
+        
+        const DEFAULT_CURVE_SEGMENTS = 64;
+        const segments = Math.max(8, Math.min(128, Math.ceil(DEFAULT_CURVE_SEGMENTS * Math.abs(angleDiff) / (Math.PI * 2))));
+        const step = angleDiff / segments;
+        
+        let prevX = 0, prevY = 0, prevZ = cz;
+        for (let j = 0; j <= segments; j++) {
+          const t = startParam + step * j;
+          // Parametric equation for ellipse before rotation
+          const ex = majorLen * Math.cos(t);
+          const ey = minorLen * Math.sin(t);
+          
+          // Rotate by 'angle' and translate
+          const currX = cx + ex * Math.cos(angle) - ey * Math.sin(angle);
+          const currY = cy + ex * Math.sin(angle) + ey * Math.cos(angle);
+          const currZ = cz;
+          
+          if (j > 0) {
+            this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
+          }
+          
+          prevX = currX; prevY = currY; prevZ = currZ;
+        }
+      }
+      else if (entity.type === 'POINT') {
+        aggregatedStats.renderedPoints++;
+        const pt = entity as any;
+        const px = pt.geometry.location[0];
+        const py = pt.geometry.location[1];
+        const pz = pt.geometry.location[2] || 0;
+        // Render a very small cross for the point to be visible
+        const d = 0.5;
+        this.addLineSegment(px - d, py, pz, px + d, py, pz, color, ltName, ltScale, doc, parentMatrix, context);
+        this.addLineSegment(px, py - d, pz, px, py + d, pz, color, ltName, ltScale, doc, parentMatrix, context);
+      }
+
       else if (entity.type === 'HATCH') {
         const hatch = entity as CadHatchEntity;
         if (!hatch.geometry.boundaryPaths || hatch.geometry.boundaryPaths.length === 0) continue;
         if (!hatch.geometry.solidFill) continue;
 
-        context.stats.renderedHatches++;
+        aggregatedStats.renderedHatches++;
         const pathInfos: PathInfo[] = [];
 
         for (const path of hatch.geometry.boundaryPaths) {
@@ -535,18 +736,43 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
               for (let i = 0; i < idx.count; i++) {
                 context.hatchIndices.push(idx.getX(i) + context.hatchCurrentIndexOffset);
               }
-              context.stats.hatchTriangles += idx.count / 3;
+              aggregatedStats.hatchTriangles += idx.count / 3;
             } else {
               for (let i = 0; i < pos.count; i++) {
                 context.hatchIndices.push(context.hatchCurrentIndexOffset + i);
               }
-              context.stats.hatchTriangles += pos.count / 3;
+              aggregatedStats.hatchTriangles += pos.count / 3;
             }
             context.hatchCurrentIndexOffset += pos.count;
           }
         }
       } 
-            else if (entity.type === 'TEXT') {
+      else if (entity.type === 'SOLID') {
+        const solidEntity = entity as any;
+        const vertices = solidEntity.geometry?.vertices;
+        if (vertices && vertices.length >= 3) {
+          const v0 = new THREE.Vector3(vertices[0][0], vertices[0][1], vertices[0][2] || 0).applyMatrix4(parentMatrix);
+          const v1 = new THREE.Vector3(vertices[1][0], vertices[1][1], vertices[1][2] || 0).applyMatrix4(parentMatrix);
+          const v2 = new THREE.Vector3(vertices[2][0], vertices[2][1], vertices[2][2] || 0).applyMatrix4(parentMatrix);
+          
+          context.hatchPositions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
+          context.hatchColors.push(r, g, b, r, g, b, r, g, b);
+          context.hatchIndices.push(context.hatchCurrentIndexOffset, context.hatchCurrentIndexOffset + 1, context.hatchCurrentIndexOffset + 2);
+          context.hatchCurrentIndexOffset += 3;
+          aggregatedStats.hatchTriangles += 1;
+          
+          if (vertices.length >= 4) {
+             const v3 = new THREE.Vector3(vertices[3][0], vertices[3][1], vertices[3][2] || 0).applyMatrix4(parentMatrix);
+             // In DXF SOLID, 4-point solids are ordered v0, v1, v3, v2 for a quad.
+             context.hatchPositions.push(v1.x, v1.y, v1.z, v3.x, v3.y, v3.z, v2.x, v2.y, v2.z);
+             context.hatchColors.push(r, g, b, r, g, b, r, g, b);
+             context.hatchIndices.push(context.hatchCurrentIndexOffset, context.hatchCurrentIndexOffset + 1, context.hatchCurrentIndexOffset + 2);
+             context.hatchCurrentIndexOffset += 3;
+             aggregatedStats.hatchTriangles += 1;
+          }
+        }
+      }
+      else if (entity.type === 'TEXT' || entity.type === 'MTEXT') {
         const textEntity = entity as CadTextEntity;
         if (!textEntity.text || !textEntity.geometry?.location) continue;
         
@@ -571,8 +797,12 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
           mesh.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
           
           mesh.renderOrder = 2;
-          this.scene.add(mesh);
-          context.stats.renderedTexts++;
+          context.textMeshes.push(mesh);
+          if (entity.type === 'MTEXT') {
+             aggregatedStats.renderedMTexts++;
+          } else {
+             aggregatedStats.renderedTexts++;
+          }
         }
       }
       else if (entity.type === 'INSERT') {
@@ -580,7 +810,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
         const block = doc.blocks ? doc.blocks[insertEntity.blockName] : null;
         
         if (!block || !block.entities) {
-          context.stats.skippedInserts++;
+          aggregatedStats.skippedInserts++;
           continue;
         }
 
@@ -599,8 +829,9 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
         
         const finalMatrix = parentMatrix.clone().multiply(insertMat);
 
-        context.stats.resolvedInserts++;
-        this.processEntities(block.entities, finalMatrix, doc, depth + 1, context, {
+        aggregatedStats.resolvedInserts++;
+        this.processEntities(block.entities, finalMatrix, doc, depth + 1, getContext, aggregatedStats, {
+          layer: effectiveLayer,
           color: color,
           linetype: ltName || undefined,
           ltscale: ltScale
@@ -629,7 +860,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
 
         if (!valid) {
           console.warn(`Unsupported SPLINE encountered (must be standard cubic Bezier):`, entity);
-          context.stats.unsupportedSplines++;
+          aggregatedStats.unsupportedSplines++;
           continue;
         }
 
@@ -650,8 +881,36 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
           );
         }
         
-        context.stats.renderedSplines++;
-        context.stats.splineSegments += segments;
+        aggregatedStats.renderedSplines++;
+        aggregatedStats.splineSegments += segments;
+      }
+      else if (entity.type === 'DIMENSION' || entity.type === 'LEADER' || entity.type === 'MLEADER' || entity.type === 'ARC_DIMENSION') {
+        const dimEntity = entity as any;
+        
+        let hasPermissionToView = false;
+        if (entity.type === 'DIMENSION') {
+          hasPermissionToView = hasPermission(PERMISSIONS.CAD_DIMENSION_VIEW);
+          if (hasPermissionToView) aggregatedStats.renderedDimensions++;
+        } else if (entity.type === 'ARC_DIMENSION') {
+          hasPermissionToView = hasPermission(PERMISSIONS.CAD_DIMENSION_VIEW);
+          if (hasPermissionToView) aggregatedStats.renderedArcDimensions++;
+        } else if (entity.type === 'LEADER') {
+          hasPermissionToView = hasPermission(PERMISSIONS.CAD_LEADER_VIEW);
+          if (hasPermissionToView) aggregatedStats.renderedLeaders++;
+        } else if (entity.type === 'MLEADER') {
+          hasPermissionToView = hasPermission(PERMISSIONS.CAD_MLEADER_VIEW);
+          if (hasPermissionToView) aggregatedStats.renderedMLeaders++;
+        }
+        
+        if (hasPermissionToView && dimEntity.geometry?.virtualEntities) {
+          // Process virtual entities recursively
+          this.processEntities(dimEntity.geometry.virtualEntities, parentMatrix, doc, depth + 1, getContext, aggregatedStats, {
+            layer: effectiveLayer,
+            color: color,
+            linetype: ltName || undefined,
+            ltscale: ltScale
+          });
+        }
       }
     }
   }
@@ -707,6 +966,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     const material = new THREE.MeshBasicMaterial({
       map: texture,
       transparent: true,
+      depthTest: false,
       side: THREE.DoubleSide
     });
     
@@ -715,7 +975,7 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     const planeWidth = planeHeight * aspect;
     
     const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-        let transX = planeWidth / 2;
+    let transX = planeWidth / 2;
     let transY = planeHeight / 2;
     
     // Adjust based on halign (0=Left, 1=Center, 2=Right)
@@ -730,7 +990,6 @@ Batched Hatch Vertices: ${context.hatchPositions.length / 3}
     geometry.translate(transX, transY, 0);
     
     const mesh = new THREE.Mesh(geometry, material);
-    mesh.matrixAutoUpdate = false;
     return mesh;
   }
 
