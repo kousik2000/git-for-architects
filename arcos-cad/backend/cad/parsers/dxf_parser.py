@@ -541,12 +541,7 @@ class ArcosDxfParser:
 
     def _parse_text(self, entity):
         props = self._base_props(entity)
-
-        # Location: prefer insert point; fall back to align_point
-        pt = entity.dxf.get("insert", None) or entity.dxf.get("align_point", None)
-        location = [pt.x, pt.y, pt.z] if pt else [0.0, 0.0, 0.0]
-
-        geometry = {"location": location}
+        geometry = {}
 
         # Optional TEXT metadata -- include only when actually present in the DXF
         try:
@@ -563,27 +558,46 @@ class ArcosDxfParser:
         try:
             rotation = entity.dxf.get("rotation", None)
         except Exception:
+            rotation = None
+            
+        if rotation is None:
             try:
-                rotation = entity.dxf.get("text_direction", None)
+                dir_vec = entity.dxf.get("text_direction", None)
+                if dir_vec is not None:
+                    import math
+                    rotation = math.degrees(math.atan2(dir_vec.y, dir_vec.x))
             except Exception:
-                rotation = None
+                pass
                 
         if rotation is not None:
             geometry["rotation"] = rotation
 
+        halign = 0
+        valign = 0
         try:
-            halign = entity.dxf.get("halign", None)
-            if halign is not None:
+            h = entity.dxf.get("halign", None)
+            if h is not None:
+                halign = h
                 geometry["halign"] = halign
         except Exception:
             pass
 
         try:
-            valign = entity.dxf.get("valign", None)
-            if valign is not None:
+            v = entity.dxf.get("valign", None)
+            if v is not None:
+                valign = v
                 geometry["valign"] = valign
         except Exception:
             pass
+
+        # Location: prefer insert point; but for aligned TEXT, use align_point
+        pt = entity.dxf.get("insert", None)
+        
+        if entity.dxftype() == "TEXT" and (halign != 0 or valign != 0):
+            pt = entity.dxf.get("align_point", pt)
+
+        location = [pt.x, pt.y, pt.z] if pt else [0.0, 0.0, 0.0]
+        geometry["location"] = location
             
         if entity.dxftype() == "MTEXT":
             try:
@@ -595,8 +609,19 @@ class ArcosDxfParser:
                     # valign: 1=Bottom, 2=Middle, 3=Top
                     h_map = {1:0, 2:1, 3:2, 4:0, 5:1, 6:2, 7:0, 8:1, 9:2}
                     v_map = {1:3, 2:3, 3:3, 4:2, 5:2, 6:2, 7:1, 8:1, 9:1}
-                    geometry["halign"] = h_map.get(attachment, 0)
-                    geometry["valign"] = v_map.get(attachment, 3)
+                    halign = h_map.get(attachment, 0)
+                    valign = v_map.get(attachment, 3)
+                    geometry["halign"] = halign
+                    geometry["valign"] = valign
+                    
+                # Investigate MTEXT formatting before calling plain_text
+                raw_text = getattr(entity, 'text', '').lower()
+                if r"\pxqc;" in raw_text:
+                    geometry["halign"] = 1
+                elif r"\pxqr;" in raw_text:
+                    geometry["halign"] = 2
+                elif r"\pxql;" in raw_text:
+                    geometry["halign"] = 0
             except Exception:
                 pass
 

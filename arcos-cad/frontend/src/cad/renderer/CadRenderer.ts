@@ -925,22 +925,28 @@ Batched Hatch Vertices: ${totalHatchVertices}
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
     
+    const lines = text.split('\n');
     const fontSize = 64; 
-    ctx.font = `${fontSize}px sans-serif`;
-    const metrics = ctx.measureText(text);
-    const textWidth = metrics.width;
+    const lineHeight = fontSize * 1.35; // Standard MTEXT line spacing is roughly 1.35 to 1.5
     
-    canvas.width = Math.ceil(textWidth) + 4;
-    canvas.height = fontSize + 12;
+    ctx.font = `${fontSize}px sans-serif`;
+    let maxTextWidth = 0;
+    let actualAscent = 0;
+    let actualDescent = 0;
+    
+    for (let i = 0; i < lines.length; i++) {
+        const metrics = ctx.measureText(lines[i]);
+        if (metrics.width > maxTextWidth) maxTextWidth = metrics.width;
+        if (i === 0) actualAscent = metrics.actualBoundingBoxAscent || (fontSize * 0.8);
+        if (i === lines.length - 1) actualDescent = metrics.actualBoundingBoxDescent || (fontSize * 0.2);
+    }
+    
+    canvas.width = Math.ceil(maxTextWidth) + 8;
+    canvas.height = (lines.length * lineHeight) + 12;
     
     ctx.font = `${fontSize}px sans-serif`;
     ctx.fillStyle = '#ffffff'; 
-    // Handle vertical alignment mapping roughly
-    if (valign === 0) { ctx.textBaseline = 'alphabetic'; }
-    else if (valign === 1) { ctx.textBaseline = 'bottom'; }
-    else if (valign === 2) { ctx.textBaseline = 'middle'; }
-    else if (valign === 3) { ctx.textBaseline = 'top'; }
-    else { ctx.textBaseline = 'alphabetic'; }
+    ctx.textBaseline = 'alphabetic'; // Reliable baseline for loop
     
     // Handle horizontal alignment
     if (halign === 0 || halign === 3 || halign === 5) { ctx.textAlign = 'left'; }
@@ -948,17 +954,15 @@ Batched Hatch Vertices: ${totalHatchVertices}
     else if (halign === 2) { ctx.textAlign = 'right'; }
     else { ctx.textAlign = 'left'; }
     
-    // Position text on canvas according to alignment
-    let drawX = 2;
+    let drawX = 4;
     if (ctx.textAlign === 'center') drawX = canvas.width / 2;
-    if (ctx.textAlign === 'right') drawX = canvas.width - 2;
+    if (ctx.textAlign === 'right') drawX = canvas.width - 4;
     
-    let drawY = canvas.height - 6; // roughly alphabetic baseline
-    if (ctx.textBaseline === 'top') drawY = 2;
-    if (ctx.textBaseline === 'middle') drawY = canvas.height / 2;
-    if (ctx.textBaseline === 'bottom') drawY = canvas.height - 2;
+    const firstLineDrawY = fontSize + 6;
     
-    ctx.fillText(text, drawX, drawY);
+    for (let i = 0; i < lines.length; i++) {
+        ctx.fillText(lines[i], drawX, firstLineDrawY + (i * lineHeight));
+    }
     
     const texture = new THREE.CanvasTexture(canvas);
     texture.minFilter = THREE.LinearFilter;
@@ -971,21 +975,79 @@ Batched Hatch Vertices: ${totalHatchVertices}
     });
     
     const aspect = canvas.width / canvas.height;
-    const planeHeight = defaultCadHeight * (canvas.height / fontSize);
-    const planeWidth = planeHeight * aspect;
+    
+    // Phase 5.14A.1: True Glyph Size Calibration
+    // Use the actual measured glyph pixel height instead of arbitrary fontSize
+    const glyphPixelHeight = actualAscent + actualDescent;
+    const worldUnitsPerPixel = defaultCadHeight / glyphPixelHeight;
+    
+    const planeHeight = canvas.height * worldUnitsPerPixel;
+    const planeWidth = canvas.width * worldUnitsPerPixel;
+    
+    // Temporary debug for verification
+    if (text.includes("POLICE STATION") || text.includes("BANDAR ROAD") || text.includes("RAILWAY STATION") || text.includes("73.82")) {
+      console.log("TEXT DEBUG [" + text.replace(/\n/g, '\\n') + "]:", {
+        dxfHeight: defaultCadHeight,
+        fontSizePx: fontSize,
+        actualAscentPx: actualAscent,
+        actualDescentPx: actualDescent,
+        glyphPixelHeight: glyphPixelHeight,
+        worldUnitsPerPixel: worldUnitsPerPixel,
+        canvasWidth: canvas.width,
+        canvasHeight: canvas.height,
+        planeWidth: planeWidth,
+        planeHeight: planeHeight
+      });
+    }
     
     const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
-    let transX = planeWidth / 2;
-    let transY = planeHeight / 2; // default roughly baseline/bottom
     
-    // Adjust based on halign (0=Left, 1=Center, 2=Right)
-    if (halign === 1 || halign === 4) transX = 0; // centered
-    if (halign === 2) transX = -planeWidth / 2; // right aligned
+    // Exact Mathematical Translation using Canvas Metrics
+    const textTopY = firstLineDrawY - actualAscent;
+    const lastLineDrawY = firstLineDrawY + ((lines.length - 1) * lineHeight);
+    const textBottomY = lastLineDrawY + actualDescent;
     
-    // Adjust based on valign (0=Baseline, 1=Bottom, 2=Middle, 3=Top)
-    if (valign === 1) transY = planeHeight / 2; // bottom aligned
-    if (valign === 2) transY = 0; // centered
-    if (valign === 3) transY = -planeHeight / 2; // top aligned
+    // Convert Canvas Y to Plane Y (Plane Y: +planeHeight/2 at top, -planeHeight/2 at bottom)
+    const toPlaneY = (canvasY: number) => {
+      return (canvas.height / 2 - canvasY) * (planeHeight / canvas.height);
+    };
+    
+    // For MTEXT (which often has newlines), the default valign might be Top (3).
+    // If valign=0 (Baseline), we align to the TOP line's baseline for MTEXT usually, or bottom line's?
+    // AutoCAD usually anchors MTEXT based on attachment_point. 
+    // We already mapped attachment_point to halign/valign.
+    // 1 (Top Left) -> valign 3 (Top). 
+    // 7 (Bottom Left) -> valign 1 (Bottom).
+    
+    const planeFirstBaselineY = toPlaneY(firstLineDrawY);
+    const planeTopY = toPlaneY(textTopY);
+    const planeBottomY = toPlaneY(textBottomY);
+    const planeMiddleY = (planeTopY + planeBottomY) / 2;
+    
+    let transY = -planeFirstBaselineY; // default roughly baseline
+    if (valign === 1) transY = -planeBottomY; // bottom aligned
+    if (valign === 2) transY = -planeMiddleY; // centered
+    if (valign === 3) transY = -planeTopY;    // top aligned
+    
+    // Text X coordinates on Canvas
+    let textLeftX = drawX;
+    if (ctx.textAlign === 'center') textLeftX = drawX - maxTextWidth / 2;
+    if (ctx.textAlign === 'right') textLeftX = drawX - maxTextWidth;
+    
+    const textCenterX = textLeftX + maxTextWidth / 2;
+    const textRightX = textLeftX + maxTextWidth;
+    
+    const toPlaneX = (canvasX: number) => {
+      return (canvasX - canvas.width / 2) * (planeWidth / canvas.width);
+    };
+    
+    const planeLeftX = toPlaneX(textLeftX);
+    const planeCenterX = toPlaneX(textCenterX);
+    const planeRightX = toPlaneX(textRightX);
+    
+    let transX = -planeLeftX;
+    if (halign === 1 || halign === 4) transX = -planeCenterX; // centered
+    if (halign === 2) transX = -planeRightX; // right aligned
 
     geometry.translate(transX, transY, 0);
     
