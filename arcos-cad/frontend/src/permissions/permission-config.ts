@@ -16,5 +16,6 @@ export const permissionConfig: Record<PermissionKey, boolean> = {
   "cad.measure.distance": true,
   "cad.dimension.view": true,
   "cad.leader.view": true,
-  "cad.mleader.view": true
+  "cad.mleader.view": true,
+  "cad.arrowhead.view": true
 };

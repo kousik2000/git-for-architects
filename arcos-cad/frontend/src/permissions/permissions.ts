@@ -16,6 +16,7 @@ export const PERMISSIONS = {
   CAD_DIMENSION_VIEW: 'cad.dimension.view',
   CAD_LEADER_VIEW: 'cad.leader.view',
   CAD_MLEADER_VIEW: 'cad.mleader.view',
+  CAD_ARROWHEAD_VIEW: 'cad.arrowhead.view',
 
   // Layers
   CAD_LAYERS_VIEW: 'cad.layers.view',

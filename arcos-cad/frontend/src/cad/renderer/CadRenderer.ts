@@ -911,8 +911,70 @@ Batched Hatch Vertices: ${totalHatchVertices}
             ltscale: ltScale
           });
         }
+        
+        // Phase 5.15: Generate synthetic arrowhead if specified
+        if (hasPermissionToView && hasPermission(PERMISSIONS.CAD_ARROWHEAD_VIEW) && dimEntity.geometry?.arrowhead) {
+          const arrowData = dimEntity.geometry.arrowhead;
+          if (arrowData.type === 'closed_filled') {
+            const mesh = this.createArrowheadMesh(arrowData.p1, arrowData.p2, arrowData.size, color);
+            if (mesh) {
+              const obj = new THREE.Object3D();
+              obj.add(mesh);
+              obj.applyMatrix4(parentMatrix);
+              this.scene.add(obj);
+            }
+          }
+        }
       }
     }
+  }
+
+  private createArrowheadMesh(p1: number[], p2: number[], size: number, color: THREE.Color): THREE.Mesh | null {
+    if (!p1 || !p2 || p1.length < 2 || p2.length < 2) return null;
+    
+    // Direction vector from p1 (tip) towards p2 (shaft)
+    const dx = p2[0] - p1[0];
+    const dy = p2[1] - p1[1];
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1e-6) return null;
+    
+    const dirX = dx / dist;
+    const dirY = dy / dist;
+    
+    // Arrowhead geometry: length = size, half_width = size / 6
+    const length = size;
+    const halfWidth = size / 6.0; 
+    
+    // Calculate base of the arrow
+    const baseX = p1[0] + dirX * length;
+    const baseY = p1[1] + dirY * length;
+    
+    // Perpendicular vector for the width
+    const perpX = -dirY;
+    const perpY = dirX;
+    
+    const pLeftX = baseX + perpX * halfWidth;
+    const pLeftY = baseY + perpY * halfWidth;
+    
+    const pRightX = baseX - perpX * halfWidth;
+    const pRightY = baseY - perpY * halfWidth;
+    
+    const geometry = new THREE.BufferGeometry();
+    const vertices = new Float32Array([
+      p1[0], p1[1], p1[2] || 0.0,
+      pLeftX, pLeftY, (p1[2] || 0.0),
+      pRightX, pRightY, (p1[2] || 0.0)
+    ]);
+    
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+    
+    const material = new THREE.MeshBasicMaterial({
+      color: color,
+      side: THREE.DoubleSide
+    });
+    
+    const mesh = new THREE.Mesh(geometry, material);
+    return mesh;
   }
 
   private createTextMesh(textEntity: CadTextEntity): THREE.Mesh | null {

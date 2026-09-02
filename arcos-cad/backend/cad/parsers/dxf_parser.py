@@ -835,5 +835,37 @@ class ArcosDxfParser:
         props["geometry"] = {
             "virtualEntities": virtual_entities
         }
+        
+        # Phase 5.15: Detect missing default arrowheads on LEADER
+        if entity.dxftype() == 'LEADER':
+            try:
+                vertices = [ [v[0], v[1], v[2]] for v in entity.vertices ]
+                if len(vertices) >= 2:
+                    dimstyle = self.doc.dimstyles.get(entity.dxf.dimstyle)
+                    dimblk = dimstyle.dxf.get('dimblk', '') if dimstyle else ''
+                    if dimblk == '' or dimblk == '""':
+                        dimasz = dimstyle.dxf.get('dimasz', self.doc.header.get('$DIMASZ', 2.5)) if dimstyle else self.doc.header.get('$DIMASZ', 2.5)
+                        
+                        # Check for dimension style overrides in XDATA
+                        if entity.has_xdata('ACAD'):
+                            xdata = entity.get_xdata('ACAD')
+                            i = 0
+                            while i < len(xdata):
+                                tag = xdata[i]
+                                if tag.code == 1070 and tag.value == 41: # 41 is dimasz
+                                    if i + 1 < len(xdata) and xdata[i+1].code == 1040:
+                                        dimasz = xdata[i+1].value
+                                        break
+                                i += 1
+
+                        props["geometry"]["arrowhead"] = {
+                            "type": "closed_filled",
+                            "size": dimasz,
+                            "p1": vertices[0],
+                            "p2": vertices[1]
+                        }
+            except Exception as e:
+                self._add_warning("LEADER_ARROW_ERROR", str(e), entity.dxftype())
+                
         return props
 
