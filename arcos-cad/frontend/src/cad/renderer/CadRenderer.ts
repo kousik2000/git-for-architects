@@ -971,19 +971,19 @@ Batched Hatch Vertices: ${totalHatchVertices}
     });
     
     const aspect = canvas.width / canvas.height;
-    const planeHeight = defaultCadHeight;
+    const planeHeight = defaultCadHeight * (canvas.height / fontSize);
     const planeWidth = planeHeight * aspect;
     
     const geometry = new THREE.PlaneGeometry(planeWidth, planeHeight);
     let transX = planeWidth / 2;
-    let transY = planeHeight / 2;
+    let transY = planeHeight / 2; // default roughly baseline/bottom
     
     // Adjust based on halign (0=Left, 1=Center, 2=Right)
     if (halign === 1 || halign === 4) transX = 0; // centered
     if (halign === 2) transX = -planeWidth / 2; // right aligned
     
     // Adjust based on valign (0=Baseline, 1=Bottom, 2=Middle, 3=Top)
-    if (valign === 1) transY = planeHeight;
+    if (valign === 1) transY = planeHeight / 2; // bottom aligned
     if (valign === 2) transY = 0; // centered
     if (valign === 3) transY = -planeHeight / 2; // top aligned
 

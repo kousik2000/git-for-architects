@@ -584,6 +584,21 @@ class ArcosDxfParser:
                 geometry["valign"] = valign
         except Exception:
             pass
+            
+        if entity.dxftype() == "MTEXT":
+            try:
+                attachment = entity.dxf.get("attachment_point", None)
+                if attachment is not None:
+                    # MTEXT Attachment point mapping to TEXT halign/valign
+                    # 1=TL, 2=TC, 3=TR, 4=ML, 5=MC, 6=MR, 7=BL, 8=BC, 9=BR
+                    # halign: 0=Left, 1=Center, 2=Right
+                    # valign: 1=Bottom, 2=Middle, 3=Top
+                    h_map = {1:0, 2:1, 3:2, 4:0, 5:1, 6:2, 7:0, 8:1, 9:2}
+                    v_map = {1:3, 2:3, 3:3, 4:2, 5:2, 6:2, 7:1, 8:1, 9:1}
+                    geometry["halign"] = h_map.get(attachment, 0)
+                    geometry["valign"] = v_map.get(attachment, 3)
+            except Exception:
+                pass
 
         props["geometry"] = geometry
 
