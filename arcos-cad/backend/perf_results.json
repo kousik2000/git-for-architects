@@ -1,0 +1,55 @@
+{
+  "timings": {
+    "ezdxf.readfile": 91.81692239999757,
+    "_extract_layers": 0.0008396000011998694,
+    "_extract_bounds": 570.8440722999985,
+    "LINE": 1.3928411999622767,
+    "HATCH": 0.01612899998872308,
+    "POLYLINE": 0.546762099951593,
+    "ARC": 0.3228827999482746,
+    "CIRCLE": 0.024451199984468985,
+    "TEXT": 0.22397990003446466,
+    "INSERT": 0.11637380008323817,
+    "ELLIPSE": 0.00036929999623680487,
+    "DIMENSION": 0.2526794000114023,
+    "VIEWPORT": 0.0023003999922366347,
+    "SPLINE": 0.0037233000039123,
+    "_extract_entities": 3.4076175000009243,
+    "_extract_layouts": 1.2571700000007695,
+    "_extract_blocks": 0.7184552999970037,
+    "_extract_linetypes": 9.560000034980476e-05,
+    "total_parse": 668.0454556000004,
+    "json_construction": 1.2388444999996864,
+    "json_dumps": 2.4685247000015806
+  },
+  "counts": {
+    "_extract_layers": 1,
+    "_extract_bounds": 1,
+    "LINE": 62551,
+    "HATCH": 282,
+    "POLYLINE": 3648,
+    "ARC": 6346,
+    "CIRCLE": 1426,
+    "TEXT": 946,
+    "INSERT": 3800,
+    "ELLIPSE": 14,
+    "DIMENSION": 260,
+    "VIEWPORT": 52,
+    "SPLINE": 19,
+    "_extract_entities": 1,
+    "_extract_layouts": 1,
+    "_extract_blocks": 1,
+    "_extract_linetypes": 1
+  },
+  "memory_mb": {
+    "before": 0.0,
+    "after_parse": 148.2720365524292,
+    "after_construct": 207.17204475402832,
+    "after_dump": 227.68874168395996
+  },
+  "virtual_entities": {
+    "calls": 544636,
+    "time": 2.368
+  },
+  "json_size_kb": 21008.50390625
+}

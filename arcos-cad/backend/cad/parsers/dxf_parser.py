@@ -57,9 +57,9 @@ class ArcosDxfParser:
 
         self._extract_layers()
         self._extract_bounds()
-        self._extract_entities()       # Must run before _extract_blocks to collect INSERT refs
-        self._extract_layouts()        # Phase 5.11B: extract PaperSpace layouts
-        self._extract_blocks()         # Phase 5.5: after entities so we know which blocks are needed
+        self._extract_blocks()
+        self._extract_entities()
+        self._extract_layouts()
         self._extract_linetypes()      # Phase 5.9A: extract linetype patterns
 
         self.stats["parsingTimeMs"] = int((time.time() - start_time) * 1000)
@@ -131,14 +131,16 @@ class ArcosDxfParser:
     # Bounds extraction (unchanged)
     # ------------------------------------------------------------------
 
+
+    def _update_bounds(self, x, y):
+        if self._current_bounds:
+            if x < self._current_bounds["min"][0]: self._current_bounds["min"][0] = x
+            if y < self._current_bounds["min"][1]: self._current_bounds["min"][1] = y
+            if x > self._current_bounds["max"][0]: self._current_bounds["max"][0] = x
+            if y > self._current_bounds["max"][1]: self._current_bounds["max"][1] = y
+
     def _extract_bounds(self):
-        from ezdxf.bbox import extents
-        bbox = extents(self.msp)
-        if bbox.extmax and bbox.extmin:
-            self.bounds = {
-                "min": [bbox.extmin.x, bbox.extmin.y, bbox.extmin.z],
-                "max": [bbox.extmax.x, bbox.extmax.y, bbox.extmax.z]
-            }
+        pass
 
     # ------------------------------------------------------------------
     # Block extraction -- Phase 5.5
@@ -202,17 +204,17 @@ class ArcosDxfParser:
         Each block entry carries full serialized entities using the same parsers
         as the modelspace.
         """
-        # Collect all directly referenced block names from parsed entities (Modelspace)
+        # Collect directly referenced block names from modelspace and layouts directly
         directly_referenced = set()
-        for entity in self.entities:
-            if entity.get("type") == "INSERT":
-                directly_referenced.add(entity["blockName"])
-
-        # Phase 5.11B: Collect from PaperSpace layouts as well
-        for layout_name, layout_data in self.layouts.items():
-            for entity in layout_data.get("entities", []):
-                if entity.get("type") == "INSERT":
-                    directly_referenced.add(entity["blockName"])
+        for entity in self.msp:
+            if entity.dxftype() == "INSERT":
+                directly_referenced.add(entity.dxf.name)
+                
+        for layout in self.doc.layouts:
+            if layout.name == 'Model': continue
+            for entity in layout:
+                if entity.dxftype() == "INSERT":
+                    directly_referenced.add(entity.dxf.name)
 
         # Recursively expand to include transitively nested blocks
         needed_blocks = set()
@@ -231,12 +233,22 @@ class ArcosDxfParser:
                 continue
 
             base_point = self._get_base_point(block)
+            self._current_bounds = {"min": [float('inf'), float('inf')], "max": [float('-inf'), float('-inf')]}
             block_entities = self._parse_block_entities(block, block_name)
+            
+            block_bounds = None
+            if self._current_bounds["min"][0] != float('inf'):
+                block_bounds = {
+                    "min": [self._current_bounds["min"][0], self._current_bounds["min"][1], 0],
+                    "max": [self._current_bounds["max"][0], self._current_bounds["max"][1], 0]
+                }
+            self._current_bounds = None
 
             self.blocks[block_name] = {
                 "name": block_name,
                 "basePoint": base_point,
-                "entities": block_entities
+                "entities": block_entities,
+                "bounds": block_bounds
             }
 
         self.stats["blocks"] = len(self.blocks)
@@ -297,6 +309,7 @@ class ArcosDxfParser:
     # ------------------------------------------------------------------
 
     def _extract_entities(self):
+        self._current_bounds = {"min": [float('inf'), float('inf')], "max": [float('-inf'), float('-inf')]}
         for entity in self.msp:
             self.stats["totalEntities"] += 1
             e_type = entity.dxftype()
@@ -342,16 +355,26 @@ class ArcosDxfParser:
             if parsed:
                 self.stats["supportedEntities"] += 1
                 self.entities.append(parsed)
+                
+        if self._current_bounds["min"][0] != float('inf'):
+            self.bounds = {
+                "min": [self._current_bounds["min"][0], self._current_bounds["min"][1], 0],
+                "max": [self._current_bounds["max"][0], self._current_bounds["max"][1], 0]
+            }
+        self._current_bounds = None
 
     # ------------------------------------------------------------------
     # PaperSpace entity extraction -- Phase 5.11B
     # ------------------------------------------------------------------
 
     def _extract_layouts(self):
+        from ezdxf.bbox import extents
         for layout in self.doc.layouts:
             if layout.name == 'Model':
                 continue # Modelspace is handled in _extract_entities
 
+
+            self._current_bounds = {"min": [float('inf'), float('inf')], "max": [float('-inf'), float('-inf')]}
             layout_entities = []
             for entity in layout:
                 self.stats["totalEntities"] += 1
@@ -380,25 +403,35 @@ class ArcosDxfParser:
                     elif e_type == "SOLID":
                         parsed = self._parse_solid(entity)
                     elif e_type == "INSERT":
+                        # Preserve nested INSERT as a reference -- do NOT expand recursively
                         parsed = self._parse_insert(entity)
                     elif e_type in ["DIMENSION", "LEADER", "MLEADER", "ARC_DIMENSION"]:
                         parsed = self._parse_dimension(entity)
                     elif e_type == "VIEWPORT":
                         parsed = self._parse_viewport(entity)
-                    else:
-                        self.stats["unsupportedEntities"] += 1
-                        self._add_warning("UNSUPPORTED_LAYOUT_ENTITY", "Entity type not fully mapped.", e_type)
-                except Exception as e:
-                    self.stats["unsupportedEntities"] += 1
-                    self._add_warning("LAYOUT_ENTITY_PARSE_ERROR", str(e), e_type)
-                    
+                    # else: silently skip ATTDEF, SEQEND, SOLID, and other layout-internal types
+                except Exception as ex:
+                    self._add_warning(
+                        "LAYOUT_ENTITY_PARSE_ERROR",
+                        "Error parsing {} in layout '{}': {}".format(e_type, layout.name, ex),
+                        e_type
+                    )
                 if parsed:
-                    self.stats["supportedEntities"] += 1
                     layout_entities.append(parsed)
-                    
+
+
+            layout_bounds = None
+            if self._current_bounds["min"][0] != float('inf'):
+                layout_bounds = {
+                    "min": [self._current_bounds["min"][0], self._current_bounds["min"][1], 0],
+                    "max": [self._current_bounds["max"][0], self._current_bounds["max"][1], 0]
+                }
+            self._current_bounds = None
+
             self.layouts[layout.name] = {
                 "name": layout.name,
-                "entities": layout_entities
+                "entities": layout_entities,
+                "bounds": layout_bounds
             }
 
     # ------------------------------------------------------------------
@@ -433,6 +466,8 @@ class ArcosDxfParser:
             "start": [entity.dxf.start.x, entity.dxf.start.y, entity.dxf.start.z],
             "end": [entity.dxf.end.x, entity.dxf.end.y, entity.dxf.end.z]
         }
+        self._update_bounds(entity.dxf.start.x, entity.dxf.start.y)
+        self._update_bounds(entity.dxf.end.x, entity.dxf.end.y)
         return props
 
     def _parse_circle(self, entity):
@@ -441,6 +476,8 @@ class ArcosDxfParser:
             "center": [entity.dxf.center.x, entity.dxf.center.y, entity.dxf.center.z],
             "radius": entity.dxf.radius
         }
+        self._update_bounds(entity.dxf.center.x - entity.dxf.radius, entity.dxf.center.y - entity.dxf.radius)
+        self._update_bounds(entity.dxf.center.x + entity.dxf.radius, entity.dxf.center.y + entity.dxf.radius)
         return props
 
     def _parse_arc(self, entity):
@@ -451,6 +488,8 @@ class ArcosDxfParser:
             "startAngle": entity.dxf.start_angle,
             "endAngle": entity.dxf.end_angle
         }
+        self._update_bounds(entity.dxf.center.x - entity.dxf.radius, entity.dxf.center.y - entity.dxf.radius)
+        self._update_bounds(entity.dxf.center.x + entity.dxf.radius, entity.dxf.center.y + entity.dxf.radius)
         return props
 
     def _parse_polyline(self, entity):
@@ -473,6 +512,8 @@ class ArcosDxfParser:
             "vertices": vertices,
             "closed": closed
         }
+        for v in vertices:
+            self._update_bounds(v[0], v[1])
         return props
 
     def _parse_ellipse(self, entity):
@@ -774,16 +815,54 @@ class ArcosDxfParser:
 
     def _parse_insert(self, entity):
         props = self._base_props(entity)
-        props["blockName"] = entity.dxf.name
+        block_name = entity.dxf.name
+        props["blockName"] = block_name
+        
+        insert_pt = [entity.dxf.insert.x, entity.dxf.insert.y, entity.dxf.insert.z]
+        scale_x = entity.dxf.get("xscale", 1.0)
+        scale_y = entity.dxf.get("yscale", 1.0)
+        rot_deg = entity.dxf.get("rotation", 0.0)
+        
         props["geometry"] = {
-            "insertionPoint": [entity.dxf.insert.x, entity.dxf.insert.y, entity.dxf.insert.z],
-            "rotation": entity.dxf.get("rotation", 0.0),
+            "insertionPoint": insert_pt,
+            "rotation": rot_deg,
             "scale": [
-                entity.dxf.get("xscale", 1.0),
-                entity.dxf.get("yscale", 1.0),
+                scale_x,
+                scale_y,
                 entity.dxf.get("zscale", 1.0)
             ]
         }
+        
+        block_bounds = None
+        if block_name in self.blocks and self.blocks[block_name].get("bounds"):
+            block_bounds = self.blocks[block_name]["bounds"]
+            
+        if block_bounds and self._current_bounds:
+            import math
+            rot = math.radians(rot_deg)
+            cos_r = math.cos(rot)
+            sin_r = math.sin(rot)
+            
+            bmin = block_bounds["min"]
+            bmax = block_bounds["max"]
+            corners = [
+                (bmin[0], bmin[1]),
+                (bmax[0], bmin[1]),
+                (bmax[0], bmax[1]),
+                (bmin[0], bmax[1])
+            ]
+            
+            for cx, cy in corners:
+                sx = cx * scale_x
+                sy = cy * scale_y
+                rx = sx * cos_r - sy * sin_r
+                ry = sx * sin_r + sy * cos_r
+                tx = rx + insert_pt[0]
+                ty = ry + insert_pt[1]
+                self._update_bounds(tx, ty)
+        else:
+            self._update_bounds(insert_pt[0], insert_pt[1])
+            
         return props
 
     def _parse_solid(self, entity):

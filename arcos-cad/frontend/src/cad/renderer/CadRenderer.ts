@@ -17,6 +17,7 @@ interface RenderContext {
   hatchColors: number[]; // Added for hatch vertex colors
   hatchCurrentIndexOffset: number;
   textMeshes: THREE.Mesh[];
+  arrowheadMeshes: THREE.Object3D[];
   
   stats: {
     totalLwpolylines: number;
@@ -357,8 +358,16 @@ export class CadRenderer {
     
     console.log(`[CadRenderer] renderSpace(${spaceType}, ${layoutName || ''}) time: ${(endTime - startTime).toFixed(2)}ms`);
     
-    // Fallback to document bounds
-    this.fitToDrawing();
+    let bounds = undefined;
+    if (spaceType === 'layout' && layoutName) {
+      const layout = this.activeDoc.layouts[layoutName];
+      if (layout && layout.bounds) {
+        bounds = layout.bounds;
+      }
+    }
+    
+    // Fit camera
+    this.fitToDrawing(bounds);
   }
 
   
@@ -540,7 +549,7 @@ export class CadRenderer {
       if (!layerContexts.has(layer)) {
         layerContexts.set(layer, {
           lines: [], colors: [],
-          hatchPositions: [], hatchIndices: [], hatchColors: [], hatchCurrentIndexOffset: 0, textMeshes: [],
+          hatchPositions: [], hatchIndices: [], hatchColors: [], hatchCurrentIndexOffset: 0, textMeshes: [], arrowheadMeshes: [],
           stats: {
             totalLwpolylines: 0, renderedLwpolylines: 0, renderedHatches: 0,
             hatchTriangles: 0, renderedTexts: 0, resolvedInserts: 0,
@@ -618,6 +627,7 @@ export class CadRenderer {
       // We should add texts to the group instead.
       
       ctx.textMeshes.forEach(mesh => group.add(mesh));
+      ctx.arrowheadMeshes.forEach(mesh => group.add(mesh));
       targetGroup.add(group);
       if (targetGroup === this.scene) {
         this.layerGroups.set(layerName, group);
@@ -1152,7 +1162,8 @@ Batched Hatch Vertices: ${totalHatchVertices}
               const obj = new THREE.Object3D();
               obj.add(mesh);
               obj.applyMatrix4(parentMatrix);
-              this.scene.add(obj);
+              
+              context.arrowheadMeshes.push(obj);
             }
           }
         }
@@ -1348,24 +1359,34 @@ Batched Hatch Vertices: ${totalHatchVertices}
     return mesh;
   }
 
-  public fitToDrawing() {
+  public fitToDrawing(explicitBounds?: {min: number[], max: number[]}) {
     let minX, minY, maxX, maxY;
     
-    // Attempt to compute bounding box from current scene
-    const box = new THREE.Box3().setFromObject(this.scene);
-    
-    // If scene is empty or bounds are invalid, fallback to doc bounds
-    if (box.isEmpty() || !isFinite(box.min.x)) {
-      if (!this.docBoundsMin || !this.docBoundsMax) return;
-      minX = this.docBoundsMin[0];
-      minY = this.docBoundsMin[1];
-      maxX = this.docBoundsMax[0];
-      maxY = this.docBoundsMax[1];
+    if (explicitBounds) {
+      minX = explicitBounds.min[0];
+      minY = explicitBounds.min[1];
+      maxX = explicitBounds.max[0];
+      maxY = explicitBounds.max[1];
     } else {
-      minX = box.min.x;
-      minY = box.min.y;
-      maxX = box.max.x;
-      maxY = box.max.y;
+      // Attempt to compute bounding box from current scene
+      const box = new THREE.Box3().setFromObject(this.scene);
+      console.log(`[CadRenderer][fitToDrawing] this.scene children count: ${this.scene.children.length}`);
+      console.log(`[CadRenderer][fitToDrawing] box from scene:`, { min: box.min, max: box.max, isEmpty: box.isEmpty() });
+      
+      // If scene is empty or bounds are invalid, fallback to doc bounds
+      if (box.isEmpty() || !isFinite(box.min.x)) {
+        if (!this.docBoundsMin || !this.docBoundsMax) return;
+        minX = this.docBoundsMin[0];
+        minY = this.docBoundsMin[1];
+        maxX = this.docBoundsMax[0];
+        maxY = this.docBoundsMax[1];
+        console.log(`[CadRenderer][fitToDrawing] Fallback to docBounds: min=(${minX},${minY}), max=(${maxX},${maxY})`);
+      } else {
+        minX = box.min.x;
+        minY = box.min.y;
+        maxX = box.max.x;
+        maxY = box.max.y;
+      }
     }
 
     const width = maxX - minX;
@@ -1373,6 +1394,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
     
     const cx = minX + width / 2;
     const cy = minY + height / 2;
+    console.log(`[CadRenderer][fitToDrawing] Final camera lookAt: (${cx}, ${cy}), width=${width}, height=${height}`);
 
     this.camera.position.set(cx, cy, 10);
     this.camera.lookAt(cx, cy, 0);
@@ -1619,13 +1641,11 @@ Batched Hatch Vertices: ${totalHatchVertices}
 
   private clearScene() {
     this.activeViewports = [];
-    while(this.scene.children.length > 0){ 
-      const child = this.scene.children[0];
-      this.scene.remove(child);
-      
-      if (child instanceof THREE.LineSegments || child instanceof THREE.Mesh) {
-        if (child.geometry) {
-          child.geometry.dispose();
+    
+    const disposeObject = (obj: THREE.Object3D) => {
+      if (obj instanceof THREE.LineSegments || obj instanceof THREE.Mesh) {
+        if (obj.geometry) {
+          obj.geometry.dispose();
         }
         
         const disposeMaterial = (mat: THREE.Material) => {
@@ -1635,12 +1655,20 @@ Batched Hatch Vertices: ${totalHatchVertices}
           }
         };
 
-        if (Array.isArray(child.material)) {
-          child.material.forEach(disposeMaterial);
-        } else if (child.material) {
-          disposeMaterial(child.material);
+        if (Array.isArray(obj.material)) {
+          obj.material.forEach(disposeMaterial);
+        } else if (obj.material) {
+          disposeMaterial(obj.material);
         }
       }
+    };
+    
+    this.scene.traverse((child) => {
+      disposeObject(child);
+    });
+
+    while(this.scene.children.length > 0){ 
+      this.scene.remove(this.scene.children[0]);
     }
   }
 
