@@ -115,9 +115,25 @@ export interface CadSplineEntity extends CadEntityBase {
   };
 }
 
+export interface CadViewportEntity extends CadEntityBase {
+  type: 'VIEWPORT';
+  geometry: {
+    center: [number, number];
+    width: number;
+    height: number;
+    viewCenter: [number, number];
+    viewHeight: number;
+    viewDirection: [number, number, number];
+    twist: number;
+    status: number;
+    clipping: number;
+    frozenLayers: string[];
+  };
+}
+
 // We map all unsupported/unknown entity types to a generic interface for now
 export interface CadGenericEntity extends CadEntityBase {
-  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT' | 'SPLINE' | 'DIMENSION' | 'LEADER' | 'MLEADER' | 'ARC_DIMENSION'>;
+  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT' | 'SPLINE' | 'DIMENSION' | 'LEADER' | 'MLEADER' | 'ARC_DIMENSION' | 'VIEWPORT'>;
   geometry: any;
 }
 
@@ -128,7 +144,7 @@ export interface CadDimensionEntity extends CadEntityBase {
   };
 }
 
-export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadSplineEntity | CadDimensionEntity | CadGenericEntity;
+export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadSplineEntity | CadDimensionEntity | CadViewportEntity | CadGenericEntity;
 
 export interface CadStatistics {
   totalEntities: number;

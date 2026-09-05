@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { ArcosCadDocument, CadEntity, CadHatchEntity, CadInsertEntity, CadTextEntity, CadSplineEntity } from '../../types/cad-json';
+import type { ArcosCadDocument, CadEntity, CadHatchEntity, CadInsertEntity, CadTextEntity, CadSplineEntity, CadViewportEntity } from '../../types/cad-json';
 import { hasPermission } from '../../permissions/permission-service';
 import { PERMISSIONS } from '../../permissions/permissions';
 import { getAciColor } from './AciPalette';
@@ -63,6 +63,17 @@ export class CadRenderer {
   private docBoundsMax: [number, number, number] | null = null;
   private activeDoc: ArcosCadDocument | null = null;
 
+  private modelSpaceGroup: THREE.Group | null = null;
+  private activeViewports: {
+    id: string;
+    scene: THREE.Scene;
+    container: THREE.Group;
+    vpCenter: [number, number];
+    viewCenter: [number, number];
+    scale: number;
+    bounds: { minX: number; minY: number; maxX: number; maxY: number };
+  }[] = [];
+
   private isDragging = false;
   private previousPointerPosition = { x: 0, y: 0 };
   private baseUnitsPerPixel = 1;
@@ -98,8 +109,12 @@ export class CadRenderer {
     const group = this.layerGroups.get(layerName);
     if (group) {
       group.visible = visible;
-      this.renderer.render(this.scene, this.camera); // re-render on change
     }
+    if (this.modelSpaceGroup) {
+      const msGroup = this.modelSpaceGroup.children.find(c => c.name === `layer_${layerName}`);
+      if (msGroup) msGroup.visible = visible;
+    }
+    this.renderer.render(this.scene, this.camera);
   }
 
   public loadDocument(doc: ArcosCadDocument) {
@@ -124,8 +139,55 @@ export class CadRenderer {
       }
     }
     
+    let paperSpaceEntities = entitiesToRender;
+    let viewportEntities: CadViewportEntity[] = [];
+
+    if (spaceType === 'layout') {
+      paperSpaceEntities = entitiesToRender.filter(e => e.type !== 'VIEWPORT');
+      viewportEntities = entitiesToRender.filter(e => e.type === 'VIEWPORT' && (e as any).geometry.status > 0) as CadViewportEntity[];
+    }
+
     const startTime = performance.now();
-    this.buildGeometry(entitiesToRender, this.activeDoc);
+    this.buildGeometry(paperSpaceEntities, this.activeDoc);
+    
+    if (viewportEntities.length > 0 && hasPermission(PERMISSIONS.CAD_VIEWPORT_COMPOSE)) {
+      if (!this.modelSpaceGroup) {
+        this.modelSpaceGroup = new THREE.Group();
+        this.buildGeometry(this.activeDoc.entities, this.activeDoc, this.modelSpaceGroup);
+        // Force frustum culling off for the reused modelspace viewports to prevent disappearance bugs
+        this.modelSpaceGroup.traverse(c => {
+          c.frustumCulled = false;
+        });
+      }
+      
+      for (const vp of viewportEntities) {
+        const vpCenter = vp.geometry.center;
+        const vWidth = vp.geometry.width;
+        const vHeight = vp.geometry.height;
+        const viewCenter = vp.geometry.viewCenter;
+        const viewHeight = vp.geometry.viewHeight;
+        const scale = vHeight / viewHeight;
+        
+        const vpScene = new THREE.Scene();
+        const vpContainer = new THREE.Group();
+        vpScene.add(vpContainer);
+
+        this.activeViewports.push({
+          id: vp.id,
+          scene: vpScene,
+          container: vpContainer,
+          vpCenter,
+          viewCenter,
+          scale,
+          bounds: {
+            minX: vpCenter[0] - vWidth / 2,
+            maxX: vpCenter[0] + vWidth / 2,
+            minY: vpCenter[1] - vHeight / 2,
+            maxY: vpCenter[1] + vHeight / 2
+          }
+        });
+      }
+    }
     const endTime = performance.now();
     
     console.log(`[CadRenderer] renderSpace(${spaceType}, ${layoutName || ''}) time: ${(endTime - startTime).toFixed(2)}ms`);
@@ -303,9 +365,11 @@ export class CadRenderer {
     return points;
   }
 
-  private buildGeometry(entities: CadEntity[], doc: ArcosCadDocument) {
+  private buildGeometry(entities: CadEntity[], doc: ArcosCadDocument, targetGroup: THREE.Object3D = this.scene) {
     const layerContexts = new Map<string, RenderContext>();
-    this.layerGroups.clear();
+    if (targetGroup === this.scene) {
+      this.layerGroups.clear();
+    }
     
     const getContext = (layer: string) => {
       if (!layerContexts.has(layer)) {
@@ -389,8 +453,10 @@ export class CadRenderer {
       // We should add texts to the group instead.
       
       ctx.textMeshes.forEach(mesh => group.add(mesh));
-      this.scene.add(group);
-      this.layerGroups.set(layerName, group);
+      targetGroup.add(group);
+      if (targetGroup === this.scene) {
+        this.layerGroups.set(layerName, group);
+      }
     });
 
 
@@ -912,7 +978,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
           });
         }
         
-        // Phase 5.15: Generate synthetic arrowhead if specified
+        // Phase 5.15B: Generate synthetic arrowhead if specified
         if (hasPermissionToView && hasPermission(PERMISSIONS.CAD_ARROWHEAD_VIEW) && dimEntity.geometry?.arrowhead) {
           const arrowData = dimEntity.geometry.arrowhead;
           if (arrowData.type === 'closed_filled') {
@@ -1118,12 +1184,24 @@ Batched Hatch Vertices: ${totalHatchVertices}
   }
 
   public fitToDrawing() {
-    if (!this.docBoundsMin || !this.docBoundsMax) return;
-
-    const minX = this.docBoundsMin[0];
-    const minY = this.docBoundsMin[1];
-    const maxX = this.docBoundsMax[0];
-    const maxY = this.docBoundsMax[1];
+    let minX, minY, maxX, maxY;
+    
+    // Attempt to compute bounding box from current scene
+    const box = new THREE.Box3().setFromObject(this.scene);
+    
+    // If scene is empty or bounds are invalid, fallback to doc bounds
+    if (box.isEmpty() || !isFinite(box.min.x)) {
+      if (!this.docBoundsMin || !this.docBoundsMax) return;
+      minX = this.docBoundsMin[0];
+      minY = this.docBoundsMin[1];
+      maxX = this.docBoundsMax[0];
+      maxY = this.docBoundsMax[1];
+    } else {
+      minX = box.min.x;
+      minY = box.min.y;
+      maxX = box.max.x;
+      maxY = box.max.y;
+    }
 
     const width = maxX - minX;
     const height = maxY - minY;
@@ -1245,10 +1323,72 @@ Batched Hatch Vertices: ${totalHatchVertices}
   private animate = () => {
     if (this.isDisposed) return;
     this.animationFrameId = requestAnimationFrame(this.animate);
-    this.renderer.render(this.scene, this.camera);
+    
+    if (this.activeViewports.length > 0 && hasPermission(PERMISSIONS.CAD_VIEWPORT_VIEW)) {
+      this.renderer.setScissorTest(false);
+      this.renderer.autoClear = false;
+      this.renderer.clear();
+      
+      // Render paperspace
+      this.renderer.render(this.scene, this.camera);
+      
+      // Render viewports
+      this.renderer.setScissorTest(true);
+      const canvas = this.renderer.domElement;
+      // Use physical pixels for scissor
+      const w = canvas.width;
+      const h = canvas.height;
+      
+      if (this.modelSpaceGroup) {
+        for (const vp of this.activeViewports) {
+          const minVec = new THREE.Vector3(vp.bounds.minX, vp.bounds.minY, 0).project(this.camera);
+          const maxVec = new THREE.Vector3(vp.bounds.maxX, vp.bounds.maxY, 0).project(this.camera);
+          
+          // NDC to physical pixels
+          const x1 = (minVec.x + 1) / 2 * w;
+          const y1 = (minVec.y + 1) / 2 * h;
+          const x2 = (maxVec.x + 1) / 2 * w;
+          const y2 = (maxVec.y + 1) / 2 * h;
+          
+          const sX = Math.min(x1, x2);
+          const sY = Math.min(y1, y2);
+          const sW = Math.abs(x2 - x1);
+          const sH = Math.abs(y2 - y1);
+          
+          // Check if scissor intersects screen
+          if (sX < w && sX + sW > 0 && sY < h && sY + sH > 0 && sW > 0 && sH > 0) {
+            // clamp to screen
+            const cx = Math.max(0, sX);
+            const cy = Math.max(0, sY);
+            const cw = Math.min(w, sX + sW) - cx;
+            const ch = Math.min(h, sY + sH) - cy;
+            
+            if (cw > 0 && ch > 0) {
+              this.renderer.setScissor(Math.round(cx), Math.round(cy), Math.round(cw), Math.round(ch));
+              this.renderer.clearDepth();
+              
+              vp.container.position.set(vp.vpCenter[0], vp.vpCenter[1], 0);
+              vp.container.scale.set(vp.scale, vp.scale, vp.scale);
+              this.modelSpaceGroup.position.set(-vp.viewCenter[0], -vp.viewCenter[1], 0);
+              
+              vp.container.add(this.modelSpaceGroup);
+              
+              this.renderer.render(vp.scene, this.camera);
+            }
+          }
+        }
+      }
+      this.renderer.setScissorTest(false);
+      this.renderer.autoClear = true;
+    } else {
+      this.renderer.setScissorTest(false);
+      this.renderer.autoClear = true;
+      this.renderer.render(this.scene, this.camera);
+    }
   };
 
   private clearScene() {
+    this.activeViewports = [];
     while(this.scene.children.length > 0){ 
       const child = this.scene.children[0];
       this.scene.remove(child);

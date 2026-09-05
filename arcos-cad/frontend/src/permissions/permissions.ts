@@ -18,6 +18,10 @@ export const PERMISSIONS = {
   CAD_MLEADER_VIEW: 'cad.mleader.view',
   CAD_ARROWHEAD_VIEW: 'cad.arrowhead.view',
 
+  // Viewports
+  CAD_VIEWPORT_VIEW: 'cad.viewport.view',
+  CAD_VIEWPORT_COMPOSE: 'cad.viewport.compose',
+
   // Layers
   CAD_LAYERS_VIEW: 'cad.layers.view',
   CAD_LAYERS_TOGGLE: 'cad.layers.toggle',

@@ -279,6 +279,8 @@ class ArcosDxfParser:
                     parsed = self._parse_insert(entity)
                 elif e_type in ["DIMENSION", "LEADER", "MLEADER", "ARC_DIMENSION"]:
                     parsed = self._parse_dimension(entity)
+                elif e_type == "VIEWPORT":
+                    parsed = self._parse_viewport(entity)
                 # else: silently skip ATTDEF, SEQEND, SOLID, and other block-internal types
             except Exception as ex:
                 self._add_warning(
@@ -327,6 +329,8 @@ class ArcosDxfParser:
                     parsed = self._parse_insert(entity)
                 elif e_type in ["DIMENSION", "LEADER", "MLEADER", "ARC_DIMENSION"]:
                     parsed = self._parse_dimension(entity)
+                elif e_type == "VIEWPORT":
+                    parsed = self._parse_viewport(entity)
                 else:
                     # Intentionally filtered: IMAGE, OLE2FRAME, etc.
                     self.stats["unsupportedEntities"] += 1
@@ -379,6 +383,8 @@ class ArcosDxfParser:
                         parsed = self._parse_insert(entity)
                     elif e_type in ["DIMENSION", "LEADER", "MLEADER", "ARC_DIMENSION"]:
                         parsed = self._parse_dimension(entity)
+                    elif e_type == "VIEWPORT":
+                        parsed = self._parse_viewport(entity)
                     else:
                         self.stats["unsupportedEntities"] += 1
                         self._add_warning("UNSUPPORTED_LAYOUT_ENTITY", "Entity type not fully mapped.", e_type)
@@ -825,6 +831,8 @@ class ArcosDxfParser:
                         parsed = self._parse_solid(v_ent)
                     elif e_type == "INSERT":
                         parsed = self._parse_insert(v_ent)
+                    elif e_type == "VIEWPORT":
+                        parsed = self._parse_viewport(v_ent)
                 except Exception:
                     pass
                 if parsed:
@@ -836,7 +844,7 @@ class ArcosDxfParser:
             "virtualEntities": virtual_entities
         }
         
-        # Phase 5.15: Detect missing default arrowheads on LEADER
+        # Phase 5.15B: Detect missing default arrowheads on LEADER
         if entity.dxftype() == 'LEADER':
             try:
                 vertices = [ [v[0], v[1], v[2]] for v in entity.vertices ]
@@ -852,7 +860,7 @@ class ArcosDxfParser:
                             i = 0
                             while i < len(xdata):
                                 tag = xdata[i]
-                                if tag.code == 1070 and tag.value == 41: # 41 is dimasz
+                                if tag.code == 1070 and tag.value == 41: # 41 is dimasz override
                                     if i + 1 < len(xdata) and xdata[i+1].code == 1040:
                                         dimasz = xdata[i+1].value
                                         break
@@ -867,5 +875,37 @@ class ArcosDxfParser:
             except Exception as e:
                 self._add_warning("LEADER_ARROW_ERROR", str(e), entity.dxftype())
                 
+        return props
+
+    def _parse_viewport(self, entity):
+        props = self._base_props(entity)
+        props["geometry"] = {
+            "center": [entity.dxf.center.x, entity.dxf.center.y],
+            "width": entity.dxf.width,
+            "height": entity.dxf.height,
+            "viewCenter": [entity.dxf.view_center_point.x, entity.dxf.view_center_point.y],
+            "viewHeight": entity.dxf.view_height,
+            "status": entity.dxf.status
+        }
+        if entity.dxf.hasattr("view_direction_vector"):
+            props["geometry"]["viewDirection"] = [entity.dxf.view_direction_vector.x, entity.dxf.view_direction_vector.y, entity.dxf.view_direction_vector.z]
+        else:
+            props["geometry"]["viewDirection"] = [0.0, 0.0, 1.0]
+
+        if entity.dxf.hasattr("view_twist_angle"):
+            props["geometry"]["twist"] = entity.dxf.view_twist_angle
+        else:
+            props["geometry"]["twist"] = 0.0
+
+        if entity.dxf.hasattr("clipping_boundary_handle"):
+            props["geometry"]["clipping"] = entity.dxf.clipping_boundary_handle
+        else:
+            props["geometry"]["clipping"] = 0
+
+        if hasattr(entity, "frozen_layers"):
+            props["geometry"]["frozenLayers"] = list(entity.frozen_layers)
+        else:
+            props["geometry"]["frozenLayers"] = []
+
         return props
 
