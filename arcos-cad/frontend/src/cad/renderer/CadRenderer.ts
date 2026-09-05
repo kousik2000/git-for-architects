@@ -49,6 +49,100 @@ interface InheritedStyle {
   ltscale?: number;
 }
 
+// =============================================================================
+// Phase 5.16C-C: View Basis Quaternion
+// =============================================================================
+//
+// Given a DXF VIEWPORT viewDirection vector D, compute a THREE.Quaternion Q
+// such that applying Q to Modelspace geometry (centred at viewCenter) makes
+// the resulting XY coordinates equal to the viewport screen coordinates:
+//
+//   screenX = dot(P - viewCenter, right)
+//   screenY = dot(P - viewCenter, up)
+//
+// This is achieved by building an orthonormal frame whose +Z aligns with D,
+// then computing the quaternion that rotates that frame to align with the
+// canonical Three.js frame (+X right, +Y up, +Z out-of-screen).
+//
+// For the standard top-view (D = (0,0,1)):
+//   forward = (0,0,1), right = (1,0,0), up = (0,1,0)  →  identity quaternion
+//   → ZERO change to existing 5.16B / 5.16C-B behaviour.
+//
+// Stable reference-up selection:
+//   Default:  (0, 1, 0)
+//   Fallback: (1, 0, 0)  when |forward · (0,1,0)| > 0.999  (nearly parallel)
+//
+// Returns: THREE.Quaternion (identity for top-view, generalised otherwise)
+// =============================================================================
+function computeViewBasisQuaternion(dx: number, dy: number, dz: number): THREE.Quaternion {
+  // 1. Normalize the view direction.
+  const len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+  if (len < 1e-10) {
+    // Degenerate direction — fall back to top view (identity).
+    return new THREE.Quaternion();
+  }
+  const fx = dx / len;
+  const fy = dy / len;
+  const fz = dz / len;
+
+  // 2. Choose a stable reference-up vector.
+  //    If forward is nearly parallel to (0,1,0) use (1,0,0) instead.
+  let ux = 0, uy = 1, uz = 0;
+  if (Math.abs(fy) > 0.999) {
+    // nearly parallel to Y — use X as reference
+    ux = 1; uy = 0; uz = 0;
+  }
+
+  // 3. right = normalize(referenceUp × forward)
+  let rx = uy * fz - uz * fy;
+  let ry = uz * fx - ux * fz;
+  let rz = ux * fy - uy * fx;
+  const rLen = Math.sqrt(rx * rx + ry * ry + rz * rz);
+  if (rLen < 1e-10) {
+    // Degenerate — fall back to identity.
+    return new THREE.Quaternion();
+  }
+  rx /= rLen; ry /= rLen; rz /= rLen;
+
+  // 4. up = normalize(forward × right)
+  //    (guarantees orthonormality even if referenceUp was imprecise)
+  let upx = fy * rz - fz * ry;
+  let upy = fz * rx - fx * rz;
+  let upz = fx * ry - fy * rx;
+  const upLen = Math.sqrt(upx * upx + upy * upy + upz * upz);
+  if (upLen < 1e-10) {
+    return new THREE.Quaternion();
+  }
+  upx /= upLen; upy /= upLen; upz /= upLen;
+
+  // 5. Build a rotation matrix that maps:
+  //      +X → right   (rx, ry, rz)
+  //      +Y → up      (upx, upy, upz)
+  //      +Z → forward (fx, fy, fz)
+  //
+  // This matrix rotates the CANONICAL frame INTO the view frame.
+  // THREE.Matrix4.setFromMatrix3 / THREE.Quaternion.setFromRotationMatrix
+  // expects column-major storage where columns are basis vectors:
+  //   col0 = right (maps +X)
+  //   col1 = up    (maps +Y)
+  //   col2 = forward (maps +Z)
+  //
+  // We want the INVERSE rotation: rotate geometry from Modelspace INTO the view frame.
+  // The inverse of a rotation matrix is its transpose.
+  // So we build the matrix with rows = basis vectors (= transpose of above).
+  const m = new THREE.Matrix4();
+  m.set(
+    rx,  ry,  rz,  0,   // row 0 = right   (inverse maps +X to right direction)
+    upx, upy, upz, 0,   // row 1 = up
+    fx,  fy,  fz,  0,   // row 2 = forward
+    0,   0,   0,   1
+  );
+
+  const q = new THREE.Quaternion();
+  q.setFromRotationMatrix(m);
+  return q;
+}
+
 export class CadRenderer {
   private container: HTMLDivElement;
   private renderer: THREE.WebGLRenderer;
@@ -68,9 +162,14 @@ export class CadRenderer {
     id: string;
     scene: THREE.Scene;
     container: THREE.Group;
+    rotPivot: THREE.Group;        // Phase 5.16C-B: rotation pivot for twist + basis
     vpCenter: [number, number];
     viewCenter: [number, number];
     scale: number;
+    twist: number;                // Phase 5.16C-B: twist angle in radians
+    viewDir: [number, number, number]; // Phase 5.16C-C: viewport view direction
+    basisQuaternion: THREE.Quaternion; // Phase 5.16C-C: cached basis rotation (viewDir→+Z)
+    frozenLayers: string[];       // Phase 5.16C-D: viewport-specific frozen layers
     bounds: { minX: number; minY: number; maxX: number; maxY: number };
   }[] = [];
 
@@ -167,18 +266,84 @@ export class CadRenderer {
         const viewCenter = vp.geometry.viewCenter;
         const viewHeight = vp.geometry.viewHeight;
         const scale = vHeight / viewHeight;
+
+        // Phase 5.16C-B: twist angle in radians (DXF group code 51 / view_twist_angle).
+        // Positive DXF twist = CCW view rotation (right-hand rule, +Z up).
+        // We negate it when applying to geometry (view CCW == geometry CW).
+        const twistRad: number = (vp.geometry.twist ?? 0);
+
+        // Phase 5.16C-C: view direction (DXF group codes 16,26,36).
+        // Defines the camera axis for this viewport.  (0,0,1) = standard top view.
+        const rawDir = vp.geometry.viewDirection ?? [0, 0, 1];
+
+        // ------------------------------------------------------------------
+        // Phase 5.16C-C: Compute orthonormal view basis from viewDirection.
+        //
+        // The goal: construct a quaternion Q such that applying Q to the
+        // modelSpaceGroup (already translated to -viewCenter) makes the
+        // resulting XY coordinates equal to (dot(V,right), dot(V,up)) —
+        // the correct viewport screen coordinates for any 3D Modelspace point.
+        //
+        // Algorithm:
+        //   1. Normalize viewDirection → forward
+        //   2. Choose stable reference-up (0,1,0); if |forward ≈ ±(0,1,0)| use (1,0,0)
+        //   3. right = normalize(referenceUp × forward)
+        //   4. up    = normalize(forward × right)
+        //   5. Build rotation matrix [right | up | forward] and convert to quaternion.
+        //
+        // For (0,0,1): right=(1,0,0), up=(0,1,0) → identity → IDENTICAL to 5.16B.
+        // ------------------------------------------------------------------
+        const basisQuaternion = computeViewBasisQuaternion(
+          rawDir[0] ?? 0, rawDir[1] ?? 0, rawDir[2] ?? 1
+        );
+
+        // --- Debug output for non-standard views ---
+        const isTopView = Math.abs(rawDir[0]) < 1e-6 &&
+                          Math.abs(rawDir[1]) < 1e-6 &&
+                          (rawDir[2] ?? 1) > 0;
+        if (!isTopView) {
+          console.log(
+            `[CadRenderer][ViewDir] VIEWPORT id=${vp.id}` +
+            `  viewDir=(${rawDir[0]?.toFixed(4)},${rawDir[1]?.toFixed(4)},${rawDir[2]?.toFixed(4)})` +
+            `  twist=${twistRad.toFixed(4)}rad` +
+            `  scale=${scale.toFixed(6)}`
+          );
+        }
+        if (Math.abs(twistRad) > 1e-9) {
+          console.log(
+            `[CadRenderer][Twist] VIEWPORT id=${vp.id}` +
+            `  twist=${twistRad.toFixed(6)} rad (${(twistRad * 180 / Math.PI).toFixed(3)}°)` +
+            `  viewCenter=(${viewCenter[0].toFixed(3)}, ${viewCenter[1].toFixed(3)})` +
+            `  vpCenter=(${vpCenter[0].toFixed(3)}, ${vpCenter[1].toFixed(3)})` +
+            `  scale=${scale.toFixed(6)}`
+          );
+        }
         
         const vpScene = new THREE.Scene();
+        // vpContainer: positioned at vpCenter, scaled by viewport scale.
+        // Implements T(vpCenter) × S(scale).
         const vpContainer = new THREE.Group();
         vpScene.add(vpContainer);
+
+        // rotPivot carries both view-basis rotation and twist.
+        // Combined rotation: R_twist × R_basis
+        // Applied order (inner-first): R_basis first (project viewDir→+Z),
+        // then R_twist (rotate around new Z = the view axis).
+        const rotPivot = new THREE.Group();
+        vpContainer.add(rotPivot);
 
         this.activeViewports.push({
           id: vp.id,
           scene: vpScene,
           container: vpContainer,
+          rotPivot,
           vpCenter,
           viewCenter,
           scale,
+          twist: twistRad,
+          viewDir: [rawDir[0] ?? 0, rawDir[1] ?? 0, rawDir[2] ?? 1],
+          basisQuaternion,
+          frozenLayers: vp.geometry.frozenLayers || [],
           bounds: {
             minX: vpCenter[0] - vWidth / 2,
             maxX: vpCenter[0] + vWidth / 2,
@@ -1341,6 +1506,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
       
       if (this.modelSpaceGroup) {
         for (const vp of this.activeViewports) {
+          // Scissor bounds are always the PaperSpace rectangle — twist does NOT rotate the boundary.
           const minVec = new THREE.Vector3(vp.bounds.minX, vp.bounds.minY, 0).project(this.camera);
           const maxVec = new THREE.Vector3(vp.bounds.maxX, vp.bounds.maxY, 0).project(this.camera);
           
@@ -1367,13 +1533,77 @@ Batched Hatch Vertices: ${totalHatchVertices}
               this.renderer.setScissor(Math.round(cx), Math.round(cy), Math.round(cw), Math.round(ch));
               this.renderer.clearDepth();
               
+              // --- Phase 5.16C-B/C: Full viewport transform hierarchy ---
+              //
+              // Transform chain: T(vpCenter) × S(scale) × R(twist) × R_basis × T(-viewCenter)
+              //
+              // vpContainer  [position=vpCenter, scale=scale]
+              //   └─ rotPivot  [quaternion = R_twist(-twist) × R_basis(viewDir→+Z)]
+              //        └─ modelSpaceGroup  [position=-viewCenter]
+              //
+              // R_basis rotates the view direction to align with +Z so that the
+              // projected XY coordinates are exactly the viewport's screen-right / screen-up
+              // components.  For top-view (0,0,1), R_basis is the identity quaternion.
+              //
+              // R_twist then rotates around the new Z axis (= the view direction).
               vp.container.position.set(vp.vpCenter[0], vp.vpCenter[1], 0);
               vp.container.scale.set(vp.scale, vp.scale, vp.scale);
+
+              // Compute combined rotation: R_twist × R_basis
+              // (quaternion multiplication: right-to-left application order)
+              if (hasPermission(PERMISSIONS.CAD_VIEWPORT_VIEW_DIRECTION) ||
+                  hasPermission(PERMISSIONS.CAD_VIEWPORT_TWIST)) {
+
+                const applyBasis = hasPermission(PERMISSIONS.CAD_VIEWPORT_VIEW_DIRECTION);
+                const applyTwist = hasPermission(PERMISSIONS.CAD_VIEWPORT_TWIST);
+
+                if (applyBasis && applyTwist) {
+                  // Full combined rotation: R_twist(-twist_z) composed with R_basis
+                  const twistQ = new THREE.Quaternion().setFromAxisAngle(
+                    new THREE.Vector3(0, 0, 1), -vp.twist
+                  );
+                  // R_basis rotates viewDir→+Z; twistQ rotates around that new +Z
+                  // Combined (applied right-to-left): basisQ first, then twistQ
+                  vp.rotPivot.quaternion.copy(twistQ).multiply(vp.basisQuaternion);
+                } else if (applyBasis) {
+                  vp.rotPivot.quaternion.copy(vp.basisQuaternion);
+                } else if (applyTwist) {
+                  vp.rotPivot.quaternion.setFromAxisAngle(
+                    new THREE.Vector3(0, 0, 1), -vp.twist
+                  );
+                } else {
+                  vp.rotPivot.quaternion.identity();
+                }
+              } else {
+                vp.rotPivot.quaternion.identity();
+              }
+
+              // modelSpaceGroup translates by -viewCenter inside the pivot's local space
               this.modelSpaceGroup.position.set(-vp.viewCenter[0], -vp.viewCenter[1], 0);
               
-              vp.container.add(this.modelSpaceGroup);
+              // Attach modelSpaceGroup under rotPivot
+              vp.rotPivot.add(this.modelSpaceGroup);
               
+              // --- Phase 5.16C-D: Viewport-specific frozen layers ---
+              // Temporarily hide layer groups that are globally visible but frozen in this viewport.
+              // This relies on the synchronous nature of Three.js render().
+              const hiddenGroups: THREE.Object3D[] = [];
+              if (hasPermission(PERMISSIONS.CAD_VIEWPORT_FROZEN_LAYERS) && vp.frozenLayers && vp.frozenLayers.length > 0) {
+                for (const layerName of vp.frozenLayers) {
+                  const msGroup = this.modelSpaceGroup.children.find(c => c.name === `layer_${layerName}`);
+                  if (msGroup && msGroup.visible) {
+                    msGroup.visible = false;
+                    hiddenGroups.push(msGroup);
+                  }
+                }
+              }
+
               this.renderer.render(vp.scene, this.camera);
+              
+              // Restore visibility for the groups we hid
+              for (const msGroup of hiddenGroups) {
+                msGroup.visible = true;
+              }
             }
           }
         }

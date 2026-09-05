@@ -19,5 +19,8 @@ export const permissionConfig: Record<PermissionKey, boolean> = {
   "cad.mleader.view": true,
   "cad.arrowhead.view": true,
   "cad.viewport.view": true,
-  "cad.viewport.compose": true
+  "cad.viewport.compose": true,
+  "cad.viewport.twist": true,
+  "cad.viewport.viewDirection": true,
+  "cad.viewport.frozenLayers": true
 };

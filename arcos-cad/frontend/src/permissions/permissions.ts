@@ -21,6 +21,9 @@ export const PERMISSIONS = {
   // Viewports
   CAD_VIEWPORT_VIEW: 'cad.viewport.view',
   CAD_VIEWPORT_COMPOSE: 'cad.viewport.compose',
+  CAD_VIEWPORT_TWIST: 'cad.viewport.twist',
+  CAD_VIEWPORT_VIEW_DIRECTION: 'cad.viewport.viewDirection',
+  CAD_VIEWPORT_FROZEN_LAYERS: 'cad.viewport.frozenLayers',
 
   // Layers
   CAD_LAYERS_VIEW: 'cad.layers.view',
