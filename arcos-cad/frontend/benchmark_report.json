@@ -1,0 +1,19 @@
+{
+  "A_Environment": {
+    "Browser": "Chrome via Puppeteer",
+    "OS": "win32",
+    "Viewport": "1920x1080",
+    "DPR": 1
+  },
+  "B_Loading": {},
+  "C_Idle": {},
+  "D_Modelspace": {},
+  "E_Layout1": {},
+  "F_Layout2": {},
+  "G_UIScroll": {},
+  "H_Memory": {
+    "BeforeLoad": "21 MB"
+  },
+  "I_RenderCost": {},
+  "Error": "Waiting for selector `.cad-viewer-canvas-wrapper canvas` failed"
+}

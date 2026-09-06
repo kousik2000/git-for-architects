@@ -17,8 +17,8 @@ export function FileUploader({ onFileSelect, disabled }: FileUploaderProps) {
   const validateAndSelectFile = (file: File) => {
     setError(null);
     
-    if (!file.name.toLowerCase().endsWith('.dwg') && !file.name.toLowerCase().endsWith('.json')) {
-      setError('Only DWG and JSON files are supported.');
+    if (!file.name.toLowerCase().endsWith('.dwg') && !file.name.toLowerCase().endsWith('.json') && !file.name.toLowerCase().endsWith('.dxf')) {
+      setError('Only DWG, DXF, and JSON files are supported.');
       return;
     }
 
@@ -79,7 +79,7 @@ export function FileUploader({ onFileSelect, disabled }: FileUploaderProps) {
           type="file" 
           ref={fileInputRef}
           onChange={handleFileChange}
-          accept=".dwg,.json"
+          accept=".dwg,.json,.dxf"
           disabled={disabled}
           className="hidden-input"
           aria-label="Choose File"

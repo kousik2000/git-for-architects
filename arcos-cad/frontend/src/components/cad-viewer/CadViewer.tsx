@@ -4,6 +4,7 @@ import type { ArcosCadDocument } from '../../types/cad-json';
 import { hasPermission } from '../../permissions/permission-service';
 import { PERMISSIONS } from '../../permissions/permissions';
 import { LayerPanel } from '../layer-panel/LayerPanel';
+import { StatisticsPanel } from '../statistics-panel/StatisticsPanel';
 import './CadViewer.css';
 
 interface CadViewerProps {
@@ -14,8 +15,9 @@ interface CadViewerProps {
 export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CadRenderer | null>(null);
-  
+
   const [showLayerPanel, setShowLayerPanel] = useState(false);
+  const [showStatsPanel, setShowStatsPanel] = useState(false);
   const [layerVisibility, setLayerVisibility] = useState<Record<string, boolean>>({});
   const [currentSpace, setCurrentSpace] = useState<{type: 'model' | 'layout', name?: string}>({type: 'model'});
 
@@ -38,7 +40,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
   useEffect(() => {
     if (rendererRef.current && document) {
       rendererRef.current.loadDocument(document);
-      
+
       // Initialize layer visibility state from document
       const initialVisibility: Record<string, boolean> = {};
       document.layers.forEach(layer => {
@@ -46,6 +48,9 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
       });
       setLayerVisibility(initialVisibility);
       setCurrentSpace({type: 'model'});
+      // Reset panels when a new file is loaded
+      setShowStatsPanel(false);
+      setShowLayerPanel(false);
     }
   }, [document]);
 
@@ -81,39 +86,50 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
           rendererRef.current.setLayerVisibility(layer.name, visible);
         }
       } else {
-        // Keep frozen layers as false
         newVis[layer.name] = false;
       }
     });
     setLayerVisibility(newVis);
   };
 
+  // Close stats when clicking layers and vice-versa (optional UX choice — keep both independent)
+  const handleToggleStats = () => setShowStatsPanel(prev => !prev);
+  const handleToggleLayers = () => setShowLayerPanel(prev => !prev);
+
   const canFit = hasPermission(PERMISSIONS.CAD_FIT);
   const canClose = hasPermission(PERMISSIONS.CAD_CLOSE);
   const canViewLayers = hasPermission(PERMISSIONS.CAD_LAYERS_VIEW);
   const canViewLayouts = hasPermission(PERMISSIONS.CAD_LAYOUTS_VIEW);
   const canSwitchLayout = hasPermission(PERMISSIONS.CAD_LAYOUT_SWITCH);
+  const canViewStats = hasPermission(PERMISSIONS.CAD_STATS_VIEW);
 
   return (
     <div className="cad-viewer-container">
+      {/* ─── Toolbar ─── */}
       <div className="cad-viewer-toolbar">
-        <span>ARCOS CAD VIEWER</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          {document && (
-            <span className="cad-viewer-stats" style={{ fontSize: '0.9em' }}>
-              Total: {document.statistics.totalEntities} | 
-              {Object.entries(document.statistics.entityTypes)
-                .filter(([_, count]) => count > 0)
-                .map(([type, count]) => `${type}: ${count}`)
-                .join(' | ')}
-            </span>
+        <span className="cad-viewer-brand">ARCOS CAD VIEWER</span>
+
+        <div className="cad-viewer-controls">
+          {/* Stats toggle — replaces the inline statistics string */}
+          {canViewStats && document && (
+            <button
+              id="cad-stats-btn"
+              className={`cad-ctrl-btn${showStatsPanel ? ' cad-ctrl-btn--active' : ''}`}
+              onClick={handleToggleStats}
+              title="Entity statistics"
+            >
+              Stats
+            </button>
           )}
+
+          {/* Space selector */}
           {canViewLayouts && document?.layouts && Object.keys(document.layouts).length > 0 && (
             <select
+              id="cad-space-select"
+              className="cad-ctrl-select"
               value={currentSpace.type === 'model' ? 'model' : currentSpace.name}
               onChange={handleSpaceChange}
               disabled={!canSwitchLayout}
-              style={{ padding: '4px', background: '#34495e', color: 'white', border: '1px solid #2c3e50', borderRadius: '4px', cursor: canSwitchLayout ? 'pointer' : 'not-allowed' }}
             >
               <option value="model">Modelspace</option>
               {Object.keys(document.layouts).map(lName => (
@@ -121,36 +137,68 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
               ))}
             </select>
           )}
+
+          {/* Layers toggle */}
           {canViewLayers && (
-            <button 
-              onClick={() => setShowLayerPanel(!showLayerPanel)} 
-              style={{ padding: '4px 10px', background: showLayerPanel ? '#2980b9' : '#34495e', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+            <button
+              id="cad-layers-btn"
+              className={`cad-ctrl-btn${showLayerPanel ? ' cad-ctrl-btn--active' : ''}`}
+              onClick={handleToggleLayers}
+              title="Layer visibility"
             >
               Layers
             </button>
           )}
+
+          {/* Fit to Drawing */}
           {canFit && (
-            <button onClick={handleFit} style={{ padding: '4px 10px', background: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Fit to Drawing</button>
+            <button
+              id="cad-fit-btn"
+              className="cad-ctrl-btn cad-ctrl-btn--primary"
+              onClick={handleFit}
+              title="Fit drawing to view"
+            >
+              Fit
+            </button>
           )}
+
+          {/* Close Viewer */}
           {onClose && canClose && (
-            <button onClick={onClose} style={{ padding: '4px 10px', background: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Close Viewer</button>
+            <button
+              id="cad-close-btn"
+              className="cad-ctrl-btn cad-ctrl-btn--danger"
+              onClick={onClose}
+              title="Close viewer"
+            >
+              Close
+            </button>
           )}
         </div>
       </div>
-      
-      <div className="cad-viewer-canvas-wrapper" ref={containerRef}>
-        {/* WebGL Canvas will be injected here by CadRenderer */}
-      </div>
 
-      {showLayerPanel && document && canViewLayers && (
-        <LayerPanel 
-          layers={document.layers}
-          visibilityState={layerVisibility}
-          onToggleLayer={handleToggleLayer}
-          onToggleAll={handleToggleAll}
-          onClose={() => setShowLayerPanel(false)}
-        />
-      )}
+      {/* ─── Canvas wrapper — popups are children so they are bounded within ─── */}
+      <div className="cad-viewer-canvas-wrapper" ref={containerRef}>
+        {/* WebGL Canvas is injected here by CadRenderer */}
+
+        {/* Statistics popup — LEFT side */}
+        {showStatsPanel && document && canViewStats && (
+          <StatisticsPanel
+            document={document}
+            onClose={() => setShowStatsPanel(false)}
+          />
+        )}
+
+        {/* Layers popup — RIGHT side */}
+        {showLayerPanel && document && canViewLayers && (
+          <LayerPanel
+            layers={document.layers}
+            visibilityState={layerVisibility}
+            onToggleLayer={handleToggleLayer}
+            onToggleAll={handleToggleAll}
+            onClose={() => setShowLayerPanel(false)}
+          />
+        )}
+      </div>
     </div>
   );
 };

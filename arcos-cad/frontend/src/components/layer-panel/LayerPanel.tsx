@@ -33,8 +33,13 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
     return '#' + colorNum.toString(16).padStart(6, '0');
   };
 
+  const stopProp = (e: React.SyntheticEvent) => e.stopPropagation();
+
   return (
-    <div className="layer-panel">
+    <div
+      className="layer-panel"
+      onWheel={stopProp}
+    >
       <div className="layer-panel-header">
         <h3>Layers</h3>
         <button className="layer-panel-close" onClick={onClose}>×</button>

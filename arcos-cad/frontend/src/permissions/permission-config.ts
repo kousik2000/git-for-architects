@@ -22,5 +22,7 @@ export const permissionConfig: Record<PermissionKey, boolean> = {
   "cad.viewport.compose": true,
   "cad.viewport.twist": true,
   "cad.viewport.viewDirection": true,
-  "cad.viewport.frozenLayers": true
+  "cad.viewport.frozenLayers": true,
+  "cad.measure.angle": true,
+  "cad.stats.view": true
 };

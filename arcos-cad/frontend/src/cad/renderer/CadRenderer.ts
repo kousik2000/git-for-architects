@@ -154,6 +154,10 @@ export class CadRenderer {
   private layerGroups = new Map<string, THREE.Group>();
   private isDisposed = false;
 
+  // Demand-driven rendering — Phase 5.17.3
+  // Only re-render when the camera or scene has actually changed.
+  private needsRender = true;
+
   private docBoundsMin: [number, number, number] | null = null;
   private docBoundsMax: [number, number, number] | null = null;
   private activeDoc: ArcosCadDocument | null = null;
@@ -205,6 +209,11 @@ export class CadRenderer {
   }
 
   
+  /** Phase 5.17.3 — Signal that the next animation frame must re-render. */
+  private markDirty() {
+    this.needsRender = true;
+  }
+
   public setLayerVisibility(layerName: string, visible: boolean) {
     const group = this.layerGroups.get(layerName);
     if (group) {
@@ -214,7 +223,9 @@ export class CadRenderer {
       const msGroup = this.modelSpaceGroup.children.find(c => c.name === `layer_${layerName}`);
       if (msGroup) msGroup.visible = visible;
     }
-    this.renderer.render(this.scene, this.camera);
+    // Phase 5.17.3: request one frame instead of synchronously rendering.
+    // This also fixes the P2 "Show All fires 39 sequential synchronous renders" issue.
+    this.markDirty();
   }
 
   public loadDocument(doc: ArcosCadDocument) {
@@ -1419,6 +1430,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
     this.camera.updateProjectionMatrix();
 
     this.baseUnitsPerPixel = targetHeight / this.container.clientHeight;
+    this.markDirty();
   }
 
   private handleResize() {
@@ -1438,6 +1450,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
       this.camera.left = -w / 2;
       this.camera.right = w / 2;
       this.camera.updateProjectionMatrix();
+      this.markDirty();
       return;
     }
 
@@ -1449,9 +1462,13 @@ Batched Hatch Vertices: ${totalHatchVertices}
     this.camera.top = viewHeight / 2;
     this.camera.bottom = -viewHeight / 2;
     this.camera.updateProjectionMatrix();
+    this.markDirty();
   }
 
   private handleWheel = (e: WheelEvent) => {
+    // Only handle wheel events that originate directly on the WebGL canvas.
+    // This prevents scroll from firing when the mouse is over an overlay panel.
+    if (e.target !== this.renderer.domElement) return;
     if (!hasPermission(PERMISSIONS.CAD_ZOOM)) return;
     e.preventDefault();
 
@@ -1475,9 +1492,12 @@ Batched Hatch Vertices: ${totalHatchVertices}
 
     this.camera.position.x += dx;
     this.camera.position.y += dy;
+    this.markDirty();
   };
 
   private handlePointerDown = (e: PointerEvent) => {
+    // Only initiate drag when the pointer is pressed directly on the WebGL canvas.
+    if (e.target !== this.renderer.domElement) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
     this.isDragging = true;
@@ -1498,6 +1518,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
     
     this.camera.position.x -= dx * unitsPerPixel;
     this.camera.position.y += dy * unitsPerPixel;
+    this.markDirty();
   };
 
   private handlePointerUp = (e: PointerEvent) => {
@@ -1510,7 +1531,12 @@ Batched Hatch Vertices: ${totalHatchVertices}
   private animate = () => {
     if (this.isDisposed) return;
     this.animationFrameId = requestAnimationFrame(this.animate);
-    
+
+    // Phase 5.17.3 — Demand-driven rendering.
+    // Skip all GPU work when the camera and scene have not changed.
+    if (!this.needsRender) return;
+    this.needsRender = false;
+
     if (this.activeViewports.length > 0 && hasPermission(PERMISSIONS.CAD_VIEWPORT_VIEW)) {
       this.renderer.setScissorTest(false);
       this.renderer.autoClear = false;

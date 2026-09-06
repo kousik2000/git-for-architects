@@ -29,6 +29,9 @@ export const PERMISSIONS = {
   CAD_LAYERS_VIEW: 'cad.layers.view',
   CAD_LAYERS_TOGGLE: 'cad.layers.toggle',
 
+  // Statistics
+  CAD_STATS_VIEW: 'cad.stats.view',
+
   // Entity
   CAD_ENTITY_SELECT: 'cad.entity.select',
 
