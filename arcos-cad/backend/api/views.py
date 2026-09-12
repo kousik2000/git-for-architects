@@ -74,8 +74,8 @@ def parse_dwg(request):
     uploaded_file = request.FILES['file']
     filename = uploaded_file.name or ""
     
-    if not filename.lower().endswith(".dwg"):
-        return Response({"code": "UNSUPPORTED_FILE_TYPE", "message": "Only DWG files are supported."}, status=400)
+    if not (filename.lower().endswith(".dwg") or filename.lower().endswith(".dxf")):
+        return Response({"code": "UNSUPPORTED_FILE_TYPE", "message": "Only DWG and DXF files are supported."}, status=400)
         
     try:
         json_data = process_dwg_to_arcos_json(uploaded_file, filename)

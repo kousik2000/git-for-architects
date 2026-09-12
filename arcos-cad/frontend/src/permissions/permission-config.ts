@@ -13,7 +13,12 @@ export const permissionConfig: Record<PermissionKey, boolean> = {
   "cad.layers.view": true,
   "cad.layers.toggle": true,
   "cad.entity.select": true,
+  "cad.entity.inspect": true,
+  "cad.measure.view": true,
+  "cad.snap.view": true,
   "cad.measure.distance": true,
+  "cad.measure.area": true,
+  "cad.measure.angle": true,
   "cad.dimension.view": true,
   "cad.leader.view": true,
   "cad.mleader.view": true,
@@ -23,6 +28,5 @@ export const permissionConfig: Record<PermissionKey, boolean> = {
   "cad.viewport.twist": true,
   "cad.viewport.viewDirection": true,
   "cad.viewport.frozenLayers": true,
-  "cad.measure.angle": true,
   "cad.stats.view": true
 };

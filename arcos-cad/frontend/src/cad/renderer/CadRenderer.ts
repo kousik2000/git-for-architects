@@ -1,20 +1,38 @@
 import * as THREE from 'three';
 import type { ArcosCadDocument, CadEntity, CadHatchEntity, CadInsertEntity, CadTextEntity, CadSplineEntity, CadViewportEntity } from '../../types/cad-json';
+import { CadTransformResolver } from '../transforms/CadTransformResolver';
 import { hasPermission } from '../../permissions/permission-service';
 import { PERMISSIONS } from '../../permissions/permissions';
 import { getAciColor } from './AciPalette';
+import { CadPicker, type CadPickingContext } from '../picking/CadPicker';
+import { CadSnapController } from '../snapping/CadSnapController';
+import type { MeasurementReference } from '../types/measurement';
+import type { CadSnappingConfig } from '../config/CadConfiguration';
 
 interface PathInfo {
   points: THREE.Vector2[];
   bounds: { minX: number; minY: number; maxX: number; maxY: number };
 }
 
+import { MeasurementController, MeasurementState, type DistanceMeasurement } from '../tools/MeasurementController';
+
+export interface SelectionReference {
+  entityId: string;
+  entityType: string;
+  layer: string;
+  insertPath: string[];
+  viewportId?: string;     // set when entity is rendered via a VIEWPORT
+  space: string;           // 'model' | 'paperspace' | layout name
+}
+
 interface RenderContext {
   lines: number[];
+  instanceIds: number[]; // Added for identity mapping
   colors: number[]; // Added for vertex colors
   hatchPositions: number[];
   hatchIndices: number[];
   hatchColors: number[]; // Added for hatch vertex colors
+  hatchInstanceIds: number[]; // Added for identity mapping
   hatchCurrentIndexOffset: number;
   textMeshes: THREE.Mesh[];
   arrowheadMeshes: THREE.Object3D[];
@@ -153,10 +171,22 @@ export class CadRenderer {
   private animationFrameId: number | null = null;
   private layerGroups = new Map<string, THREE.Group>();
   private isDisposed = false;
+  private gridHelper?: THREE.GridHelper;
 
   // Demand-driven rendering — Phase 5.17.3
   // Only re-render when the camera or scene has actually changed.
   private needsRender = true;
+
+  // Selection Identity Mapping - Phase 5.18.2
+  private selectionMap = new Map<number, SelectionReference>();
+  private nextRenderInstanceId = 1;
+
+  // Hover Interaction State
+  public hoverHighlightEnabled = true;
+  public hoverDelayMs = 200;
+  private hoverOverlayGroup = new THREE.Group();
+  private currentHoverRef: SelectionReference | null = null;
+  private hoverTimer: number | null = null;
 
   private docBoundsMin: [number, number, number] | null = null;
   private docBoundsMax: [number, number, number] | null = null;
@@ -180,17 +210,66 @@ export class CadRenderer {
 
   private isDragging = false;
   private previousPointerPosition = { x: 0, y: 0 };
+  private pointerDownPosition = { x: 0, y: 0 };
   private baseUnitsPerPixel = 1;
+
+  public onDocumentLoaded?: (doc: ArcosCadDocument) => void;
+  public onRenderComplete?: () => void;
+  public onEntitySelected?: (reference: SelectionReference | null) => void;
+  public onEntityHovered?: (reference: SelectionReference | null, clientX: number, clientY: number) => void;
+  public onSnapChanged?: (snap: MeasurementReference | null) => void;
+  
+  private raycaster = new THREE.Raycaster();
+  private selectionOverlayGroup = new THREE.Group();
+  private snapIndicatorGroup = new THREE.Group();
+  private cursorOverlayGroup = new THREE.Group();
+  private picker: CadPicker;
+  private snapController: CadSnapController;
+  private currentSnapConfig: CadSnappingConfig = { enabled: false, tolerancePixels: 30, indicatorSizePixels: 10, enabledTypes: { endpoint: true, midpoint: true, center: true, nearest: false } };
+  private currentInteractionConfig?: CadInteractionConfig;
+
+  // Phase 5.19.3
+  public measurementController: MeasurementController;
+  private measurementOverlayGroup: THREE.Group;
+  
+  // Measurement object pools for performance
+  private measPointMat = new THREE.MeshBasicMaterial({ color: 0x00ffff, depthTest: false });
+  private measPointGeom = new THREE.CircleGeometry(1, 16);
+  private measLineMat = new THREE.LineBasicMaterial({ color: 0x00ffff, depthTest: false, transparent: true, opacity: 0.8 });
+  private measPointPool: THREE.Mesh[] = [];
+  private measLinePool: THREE.LineSegments[] = [];
 
   constructor(container: HTMLDivElement) {
     this.container = container;
-    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    this.measurementOverlayGroup = new THREE.Group();
+    this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     this.renderer.setPixelRatio(window.devicePixelRatio);
     this.renderer.setSize(container.clientWidth, container.clientHeight);
     this.renderer.setClearColor(0x1e1e1e, 1);
     container.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
+    this.selectionOverlayGroup.name = 'selectionOverlayGroup';
+    // Ensure overlay draws on top
+    this.selectionOverlayGroup.renderOrder = 999;
+    this.scene.add(this.selectionOverlayGroup);
+    
+    this.hoverOverlayGroup.name = 'hoverOverlayGroup';
+    this.hoverOverlayGroup.renderOrder = 998;
+    this.scene.add(this.hoverOverlayGroup);
+
+    this.snapIndicatorGroup.name = 'snapIndicatorGroup';
+    this.snapIndicatorGroup.renderOrder = 1000;
+    this.scene.add(this.snapIndicatorGroup);
+
+    this.measurementOverlayGroup.name = 'measurementOverlayGroup';
+    this.measurementOverlayGroup.renderOrder = 1001;
+    this.scene.add(this.measurementOverlayGroup);
+
+    this.cursorOverlayGroup.name = 'cursorOverlayGroup';
+    this.cursorOverlayGroup.renderOrder = 9998;
+    this.scene.add(this.cursorOverlayGroup);
+    this.rebuildCursorOverlay();
 
     const aspect = container.clientWidth / container.clientHeight;
     this.camera = new THREE.OrthographicCamera(-aspect, aspect, 1, -1, 0.1, 1000);
@@ -201,9 +280,29 @@ export class CadRenderer {
     this.container.addEventListener('pointermove', this.handlePointerMove);
     this.container.addEventListener('pointerup', this.handlePointerUp);
     this.container.addEventListener('pointercancel', this.handlePointerUp);
+    this.container.addEventListener('pointerleave', this.handlePointerLeave);
+    window.addEventListener('keydown', this.handleKeyDown);
 
     this.resizeObserver = new ResizeObserver(() => this.handleResize());
     this.resizeObserver.observe(this.container);
+
+    this.picker = new CadPicker({
+      camera: this.camera,
+      getDocument: () => this.activeDoc,
+      rendererDomElement: this.renderer.domElement,
+      getActiveSpace: () => this.activeSpace || 'model',
+      zoomTolerancePixels: this.currentSnapConfig.tolerancePixels
+    });
+
+    this.snapController = new CadSnapController(
+      this.picker,
+      this.currentSnapConfig,
+      (snap) => this.handleSnapChanged(snap)
+    );
+
+    this.measurementController = new MeasurementController((state, activePreview, history) => {
+      this.updateMeasurementVisuals(state, activePreview, history);
+    });
 
     this.animate();
   }
@@ -228,6 +327,19 @@ export class CadRenderer {
     this.markDirty();
   }
 
+  // Phase 5.18.2: Public read-only accessors for identity mapping (used by Phase 5.18.3 hit-testing).
+  public getSelectionReference(renderInstanceId: number): SelectionReference | undefined {
+    return this.selectionMap.get(renderInstanceId);
+  }
+
+  public getSelectionMapSize(): number {
+    return this.selectionMap.size;
+  }
+
+  public getActiveDoc(): ArcosCadDocument | null {
+    return this.activeDoc;
+  }
+
   public loadDocument(doc: ArcosCadDocument) {
     if (this.isDisposed) return;
     this.activeDoc = doc;
@@ -239,6 +351,9 @@ export class CadRenderer {
   public renderSpace(spaceType: 'model' | 'layout', layoutName?: string) {
     if (!this.activeDoc) return;
     this.clearScene();
+    // Phase 5.18.2: Reset identity mapping on each render to avoid stale entries.
+    this.selectionMap.clear();
+    this.nextRenderInstanceId = 1;
     
     let entitiesToRender: CadEntity[] = [];
     if (spaceType === 'model') {
@@ -259,12 +374,15 @@ export class CadRenderer {
     }
 
     const startTime = performance.now();
-    this.buildGeometry(paperSpaceEntities, this.activeDoc);
+    // Determine which space label to use for SelectionReference
+    const spaceLabel = spaceType === 'model' ? 'model' : (layoutName || 'paperspace');
+    this.buildGeometry(paperSpaceEntities, this.activeDoc, this.scene, spaceLabel, undefined);
     
     if (viewportEntities.length > 0 && hasPermission(PERMISSIONS.CAD_VIEWPORT_COMPOSE)) {
       if (!this.modelSpaceGroup) {
         this.modelSpaceGroup = new THREE.Group();
-        this.buildGeometry(this.activeDoc.entities, this.activeDoc, this.modelSpaceGroup);
+        // modelspace entities under viewport are tagged with space='model'
+        this.buildGeometry(this.activeDoc.entities, this.activeDoc, this.modelSpaceGroup, 'model', undefined);
         // Force frustum culling off for the reused modelspace viewports to prevent disappearance bugs
         this.modelSpaceGroup.traverse(c => {
           c.frustumCulled = false;
@@ -363,6 +481,8 @@ export class CadRenderer {
             maxY: vpCenter[1] + vHeight / 2
           }
         });
+        // Phase 5.18.2: Annotate viewport id on the vpScene so future hit tests can recover viewportId.
+        vpScene.userData.viewportId = vp.id;
       }
     }
     const endTime = performance.now();
@@ -372,13 +492,14 @@ export class CadRenderer {
     let bounds = undefined;
     if (spaceType === 'layout' && layoutName) {
       const layout = this.activeDoc.layouts[layoutName];
-      if (layout && layout.bounds) {
-        bounds = layout.bounds;
+      if (layout && (layout as any).bounds) {
+        bounds = (layout as any).bounds;
       }
     }
     
     // Fit camera
     this.fitToDrawing(bounds);
+    if (this.onRenderComplete) this.onRenderComplete();
   }
 
   
@@ -422,7 +543,7 @@ export class CadRenderer {
     return lt;
   }
 
-  private addLineSegment(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number, ltName: string | null, ltScale: number, doc: ArcosCadDocument, parentMatrix: THREE.Matrix4, context: RenderContext) {
+  private addLineSegment(x1: number, y1: number, z1: number, x2: number, y2: number, z2: number, color: number, ltName: string | null, ltScale: number, doc: ArcosCadDocument, parentMatrix: THREE.Matrix4, context: RenderContext, renderInstanceId: number) {
     const vec3 = new THREE.Vector3();
     const r = ((color >> 16) & 255) / 255;
     const g = ((color >> 8) & 255) / 255;
@@ -434,10 +555,12 @@ export class CadRenderer {
       vec3.set(x1, y1, z1).applyMatrix4(parentMatrix);
       context.lines.push(vec3.x, vec3.y, vec3.z);
       context.colors.push(r, g, b);
+      context.instanceIds.push(renderInstanceId);
       
       vec3.set(x2, y2, z2).applyMatrix4(parentMatrix);
       context.lines.push(vec3.x, vec3.y, vec3.z);
       context.colors.push(r, g, b);
+      context.instanceIds.push(renderInstanceId);
       return;
     }
 
@@ -479,21 +602,15 @@ export class CadRenderer {
       const nextPos = Math.min(currentPos + dashLen, totalLength);
       
       if (drawing) {
-        const sx = x1 + dirX * currentPos;
-        const sy = y1 + dirY * currentPos;
-        const sz = z1 + dirZ * currentPos;
-        
-        const ex = x1 + dirX * nextPos;
-        const ey = y1 + dirY * nextPos;
-        const ez = z1 + dirZ * nextPos;
-        
-        vec3.set(sx, sy, sz).applyMatrix4(parentMatrix);
+        vec3.set(x1 + dirX * currentPos, y1 + dirY * currentPos, z1 + dirZ * currentPos).applyMatrix4(parentMatrix);
         context.lines.push(vec3.x, vec3.y, vec3.z);
         context.colors.push(r, g, b);
+        context.instanceIds.push(renderInstanceId);
         
-        vec3.set(ex, ey, ez).applyMatrix4(parentMatrix);
+        vec3.set(x1 + dirX * nextPos, y1 + dirY * nextPos, z1 + dirZ * nextPos).applyMatrix4(parentMatrix);
         context.lines.push(vec3.x, vec3.y, vec3.z);
         context.colors.push(r, g, b);
+        context.instanceIds.push(renderInstanceId);
       }
       
       currentPos = nextPos;
@@ -550,7 +667,13 @@ export class CadRenderer {
     return points;
   }
 
-  private buildGeometry(entities: CadEntity[], doc: ArcosCadDocument, targetGroup: THREE.Object3D = this.scene) {
+  private buildGeometry(
+    entities: CadEntity[],
+    doc: ArcosCadDocument,
+    targetGroup: THREE.Object3D = this.scene,
+    space: string = 'model',
+    viewportId: string | undefined = undefined
+  ) {
     const layerContexts = new Map<string, RenderContext>();
     if (targetGroup === this.scene) {
       this.layerGroups.clear();
@@ -559,8 +682,8 @@ export class CadRenderer {
     const getContext = (layer: string) => {
       if (!layerContexts.has(layer)) {
         layerContexts.set(layer, {
-          lines: [], colors: [],
-          hatchPositions: [], hatchIndices: [], hatchColors: [], hatchCurrentIndexOffset: 0, textMeshes: [], arrowheadMeshes: [],
+          lines: [], colors: [], instanceIds: [],
+          hatchPositions: [], hatchIndices: [], hatchColors: [], hatchInstanceIds: [], hatchCurrentIndexOffset: 0, textMeshes: [], arrowheadMeshes: [],
           stats: {
             totalLwpolylines: 0, renderedLwpolylines: 0, renderedHatches: 0,
             hatchTriangles: 0, renderedTexts: 0, resolvedInserts: 0,
@@ -582,7 +705,7 @@ export class CadRenderer {
     const identityMatrix = new THREE.Matrix4();
     
     const geomStart = performance.now();
-    this.processEntities(entities, identityMatrix, doc, 0, getContext, aggregatedStats);
+    this.processEntities(entities, identityMatrix, doc, 0, getContext, aggregatedStats, {}, [], space, viewportId);
     const geomEnd = performance.now();
     console.log(`[CadRenderer] Geometry loop time: ${(geomEnd - geomStart).toFixed(2)}ms`);
 
@@ -607,6 +730,8 @@ export class CadRenderer {
         const geometry = new THREE.BufferGeometry();
         geometry.setAttribute('position', new THREE.Float32BufferAttribute(ctx.lines, 3));
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(ctx.colors, 3));
+        geometry.setAttribute('instanceId', new THREE.Uint32BufferAttribute(ctx.instanceIds, 1));
+        geometry.computeBoundingSphere();
         const material = new THREE.LineBasicMaterial({ vertexColors: true });
         const lineSegments = new THREE.LineSegments(geometry, material);
         lineSegments.renderOrder = 1; 
@@ -618,7 +743,9 @@ export class CadRenderer {
         const mergedGeom = new THREE.BufferGeometry();
         mergedGeom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.hatchPositions, 3));
         mergedGeom.setAttribute('color', new THREE.Float32BufferAttribute(ctx.hatchColors, 3));
+        mergedGeom.setAttribute('instanceId', new THREE.Uint32BufferAttribute(ctx.hatchInstanceIds, 1));
         mergedGeom.setIndex(ctx.hatchIndices);
+        mergedGeom.computeBoundingSphere();
         
         const hatchMaterial = new THREE.MeshBasicMaterial({ 
           vertexColors: true,
@@ -678,7 +805,10 @@ Batched Hatch Vertices: ${totalHatchVertices}
     depth: number, 
     getContext: (layer: string) => RenderContext,
     aggregatedStats: any,
-    inherited: InheritedStyle = {}
+    inherited: InheritedStyle = {},
+    insertPath: string[] = [],
+    space: string = 'model',
+    viewportId: string | undefined = undefined
   ) {
     if (depth > 20) {
       console.warn('Max block nesting depth exceeded.');
@@ -688,7 +818,19 @@ Batched Hatch Vertices: ${totalHatchVertices}
 
 
     for (const entity of entities) {
+      const renderInstanceId = this.nextRenderInstanceId++;
+      
       const effectiveLayer = (entity.layer === '0' && inherited.layer) ? inherited.layer : entity.layer;
+      
+      this.selectionMap.set(renderInstanceId, {
+        entityId: entity.id,
+        entityType: entity.type,
+        layer: effectiveLayer,
+        insertPath: [...insertPath],
+        space,
+        ...(viewportId !== undefined ? { viewportId } : {})
+      });
+
       const context = getContext(effectiveLayer);
       
       const color = this.resolveColor(entity, doc, inherited);
@@ -703,7 +845,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
         this.addLineSegment(
           lineEntity.geometry.start[0], lineEntity.geometry.start[1], lineEntity.geometry.start[2] || 0,
           lineEntity.geometry.end[0], lineEntity.geometry.end[1], lineEntity.geometry.end[2] || 0,
-          color, ltName, ltScale, doc, parentMatrix, context
+          color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId
         );
       }
       else if (entity.type === 'LWPOLYLINE') {
@@ -725,7 +867,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
           if (Math.abs(x2 - x1) < 1e-10 && Math.abs(y2 - y1) < 1e-10) continue;
 
           if (Math.abs(b) < 1e-6) {
-            this.addLineSegment(x1, y1, z1, x2, y2, z2, color, ltName, ltScale, doc, parentMatrix, context);
+            this.addLineSegment(x1, y1, z1, x2, y2, z2, color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId);
           } else {
             const dx = x2 - x1;
             const dy = y2 - y1;
@@ -753,7 +895,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
               const currY = isLast ? y2 : cy + R * Math.sin(currentAngle);
               const currZ = isLast ? z2 : z1 + (z2 - z1) * (j / segments);
               
-              this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
+              this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId);
               
               prevX = currX; prevY = currY; prevZ = currZ;
             }
@@ -781,7 +923,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
           const currY = cy + R * Math.sin(currentAngle);
           const currZ = cz;
           
-          this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
+          this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId);
           
           prevX = currX; prevY = currY; prevZ = currZ;
         }
@@ -818,7 +960,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
           const currY = cy + R * Math.sin(currentAngle);
           const currZ = cz;
           
-          this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
+          this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId);
           
           prevX = currX; prevY = currY; prevZ = currZ;
         }
@@ -862,7 +1004,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
           const currZ = cz;
           
           if (j > 0) {
-            this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context);
+            this.addLineSegment(prevX, prevY, prevZ, currX, currY, currZ, color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId);
           }
           
           prevX = currX; prevY = currY; prevZ = currZ;
@@ -876,8 +1018,8 @@ Batched Hatch Vertices: ${totalHatchVertices}
         const pz = pt.geometry.location[2] || 0;
         // Render a very small cross for the point to be visible
         const d = 0.5;
-        this.addLineSegment(px - d, py, pz, px + d, py, pz, color, ltName, ltScale, doc, parentMatrix, context);
-        this.addLineSegment(px, py - d, pz, px, py + d, pz, color, ltName, ltScale, doc, parentMatrix, context);
+        this.addLineSegment(px - d, py, pz, px + d, py, pz, color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId);
+        this.addLineSegment(px, py - d, pz, px, py + d, pz, color, ltName, ltScale, doc, parentMatrix, context, renderInstanceId);
       }
 
       else if (entity.type === 'HATCH') {
@@ -897,6 +1039,30 @@ Batched Hatch Vertices: ${totalHatchVertices}
               if (edge.type === 'LineEdge') {
                 if (pts.length === 0) pts.push(new THREE.Vector2(edge.start[0], edge.start[1]));
                 pts.push(new THREE.Vector2(edge.end[0], edge.end[1]));
+              } else if (edge.type === 'ArcEdge') {
+                const cx = edge.center[0];
+                const cy = edge.center[1];
+                let sa = (edge.startAngle * Math.PI) / 180;
+                let ea = (edge.endAngle * Math.PI) / 180;
+                
+                if (edge.ccw) {
+                  if (ea < sa) ea += Math.PI * 2;
+                } else {
+                  if (sa < ea) sa += Math.PI * 2;
+                }
+                
+                const diff = ea - sa;
+                const segments = Math.max(8, Math.min(64, Math.ceil(64 * Math.abs(diff) / (Math.PI * 2))));
+                const step = diff / segments;
+                
+                for (let j = 0; j <= segments; j++) {
+                  const angle = sa + step * j;
+                  const pt = new THREE.Vector2(cx + edge.radius * Math.cos(angle), cy + edge.radius * Math.sin(angle));
+                  // Skip if very close to the last point to avoid degenerate edges
+                  if (pts.length === 0 || pts[pts.length - 1].distanceTo(pt) > 1e-6) {
+                    pts.push(pt);
+                  }
+                }
               }
             }
           }
@@ -983,6 +1149,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
             for (let i = 0; i < pos.count; i++) {
               context.hatchPositions.push(pos.getX(i), pos.getY(i), pos.getZ(i));
               context.hatchColors.push(r, g, b);
+              context.hatchInstanceIds.push(renderInstanceId);
             }
             if (idx) {
               for (let i = 0; i < idx.count; i++) {
@@ -1009,6 +1176,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
           
           context.hatchPositions.push(v0.x, v0.y, v0.z, v1.x, v1.y, v1.z, v2.x, v2.y, v2.z);
           context.hatchColors.push(r, g, b, r, g, b, r, g, b);
+          context.hatchInstanceIds.push(renderInstanceId, renderInstanceId, renderInstanceId);
           context.hatchIndices.push(context.hatchCurrentIndexOffset, context.hatchCurrentIndexOffset + 1, context.hatchCurrentIndexOffset + 2);
           context.hatchCurrentIndexOffset += 3;
           aggregatedStats.hatchTriangles += 1;
@@ -1018,6 +1186,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
              // In DXF SOLID, 4-point solids are ordered v0, v1, v3, v2 for a quad.
              context.hatchPositions.push(v1.x, v1.y, v1.z, v3.x, v3.y, v3.z, v2.x, v2.y, v2.z);
              context.hatchColors.push(r, g, b, r, g, b, r, g, b);
+             context.hatchInstanceIds.push(renderInstanceId, renderInstanceId, renderInstanceId);
              context.hatchIndices.push(context.hatchCurrentIndexOffset, context.hatchCurrentIndexOffset + 1, context.hatchCurrentIndexOffset + 2);
              context.hatchCurrentIndexOffset += 3;
              aggregatedStats.hatchTriangles += 1;
@@ -1032,6 +1201,8 @@ Batched Hatch Vertices: ${totalHatchVertices}
         if (mesh) {
           // Apply color (tinting the material)
           (mesh.material as THREE.MeshBasicMaterial).color.setHex(color);
+          
+          mesh.userData.renderInstanceId = renderInstanceId;
           
           mesh.position.set(
             textEntity.geometry.location[0],
@@ -1087,7 +1258,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
           color: color,
           linetype: ltName || undefined,
           ltscale: ltScale
-        });
+        }, [...insertPath, entity.id], space, viewportId);
       }
       else if (entity.type === 'SPLINE') {
         const spline = entity as CadSplineEntity;
@@ -1125,11 +1296,14 @@ Batched Hatch Vertices: ${totalHatchVertices}
         const segments = 16;
         const points = curve.getPoints(segments);
 
-                for (let j = 0; j < points.length - 1; j++) {
+        // Note: control points are already in world space (parentMatrix applied above),
+        // so use identity matrix in addLineSegment to avoid double-transform.
+        const identityMat = new THREE.Matrix4();
+        for (let j = 0; j < points.length - 1; j++) {
           this.addLineSegment(
             points[j].x, points[j].y, points[j].z,
             points[j+1].x, points[j+1].y, points[j+1].z,
-            color, ltName, ltScale, doc, parentMatrix, context
+            color, ltName, ltScale, doc, identityMat, context, renderInstanceId
           );
         }
         
@@ -1155,13 +1329,13 @@ Batched Hatch Vertices: ${totalHatchVertices}
         }
         
         if (hasPermissionToView && dimEntity.geometry?.virtualEntities) {
-          // Process virtual entities recursively
+          // Process virtual entities recursively — pass insertPath and space context through
           this.processEntities(dimEntity.geometry.virtualEntities, parentMatrix, doc, depth + 1, getContext, aggregatedStats, {
             layer: effectiveLayer,
             color: color,
             linetype: ltName || undefined,
             ltscale: ltScale
-          });
+          }, insertPath, space, viewportId);
         }
         
         // Phase 5.15B: Generate synthetic arrowhead if specified
@@ -1182,7 +1356,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
     }
   }
 
-  private createArrowheadMesh(p1: number[], p2: number[], size: number, color: THREE.Color): THREE.Mesh | null {
+  private createArrowheadMesh(p1: number[], p2: number[], size: number, color: number): THREE.Mesh | null {
     if (!p1 || !p2 || p1.length < 2 || p2.length < 2) return null;
     
     // Direction vector from p1 (tip) towards p2 (shaft)
@@ -1222,7 +1396,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
     geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
     
     const material = new THREE.MeshBasicMaterial({
-      color: color,
+      color: new THREE.Color(color),
       side: THREE.DoubleSide
     });
     
@@ -1232,19 +1406,49 @@ Batched Hatch Vertices: ${totalHatchVertices}
 
   private createTextMesh(textEntity: CadTextEntity): THREE.Mesh | null {
     const text = textEntity.text;
+    if (!text) return null;
     const defaultCadHeight = textEntity.geometry.height || 4.0;
     const halign = textEntity.geometry.halign || 0;
     const valign = textEntity.geometry.valign || 0;
+    
+    // Resolve font
+    let fontFamily = '"Arial", sans-serif';
+    let rawFontName = (textEntity as any).inlineFont;
+    
+    if (!rawFontName && textEntity.styleName && this.activeDoc?.styles) {
+      const style = this.activeDoc.styles[textEntity.styleName];
+      if (style) {
+        rawFontName = style.font;
+      }
+    }
+    
+    if (rawFontName) {
+      const lowerFont = rawFontName.toLowerCase();
+      if (lowerFont.includes('romans') || lowerFont.includes('isocp') || lowerFont.includes('.shx')) {
+        fontFamily = 'sans-serif';
+      } else if (lowerFont.includes('arial') || lowerFont.includes('helvetica')) {
+        fontFamily = '"Arial", sans-serif';
+      } else if (lowerFont.includes('times') || lowerFont.includes('roman')) {
+        fontFamily = '"Times New Roman", serif';
+      } else if (lowerFont.includes('courier') || lowerFont.includes('mono')) {
+        fontFamily = '"Courier New", monospace';
+      } else if (lowerFont.includes('stylus')) {
+        fontFamily = '"Stylus BT", "Arial", sans-serif';
+      } else {
+        fontFamily = `"${rawFontName.replace(/\.ttf$/i, '')}", sans-serif`;
+      }
+    }
     
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
     
-    const lines = text.split('\n');
+    const textStr = text.replace(/\\P/g, '\n');
+    const lines = textStr.split('\n');
     const fontSize = 64; 
     const lineHeight = fontSize * 1.35; // Standard MTEXT line spacing is roughly 1.35 to 1.5
     
-    ctx.font = `${fontSize}px sans-serif`;
+    ctx.font = `${fontSize}px ${fontFamily}`;
     let maxTextWidth = 0;
     let actualAscent = 0;
     let actualDescent = 0;
@@ -1259,9 +1463,11 @@ Batched Hatch Vertices: ${totalHatchVertices}
     canvas.width = Math.ceil(maxTextWidth) + 8;
     canvas.height = (lines.length * lineHeight) + 12;
     
-    ctx.font = `${fontSize}px sans-serif`;
+    ctx.font = `${fontSize}px ${fontFamily}`;
     ctx.fillStyle = '#ffffff'; 
     ctx.textBaseline = 'alphabetic'; // Reliable baseline for loop
+    
+    console.log(`[Font Debug] Rendering Text: "${textStr.substring(0, 15)}" | inline: ${(textEntity as any).inlineFont} | style: ${textEntity.styleName} | final ctx.font: ${ctx.font}`);
     
     // Handle horizontal alignment
     if (halign === 0 || halign === 3 || halign === 5) { ctx.textAlign = 'left'; }
@@ -1289,7 +1495,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
       side: THREE.DoubleSide
     });
     
-    const aspect = canvas.width / canvas.height;
+    // Phase 5.14A.1: True Glyph Size Calibration
     
     // Phase 5.14A.1: True Glyph Size Calibration
     // Use the actual measured glyph pixel height instead of arbitrary fontSize
@@ -1500,33 +1706,731 @@ Batched Hatch Vertices: ${totalHatchVertices}
     if (e.target !== this.renderer.domElement) return;
     if (e.button !== 0 && e.pointerType === 'mouse') return;
 
+    if (this.hoverTimer) {
+      window.clearTimeout(this.hoverTimer);
+      this.hoverTimer = null;
+    }
+
     this.isDragging = true;
     this.previousPointerPosition = { x: e.clientX, y: e.clientY };
+    this.pointerDownPosition = { x: e.clientX, y: e.clientY };
     this.container.setPointerCapture(e.pointerId);
   };
 
   private handlePointerMove = (e: PointerEvent) => {
     if (!hasPermission(PERMISSIONS.CAD_PAN)) return;
-    if (!this.isDragging) return;
-
-    const dx = e.clientX - this.previousPointerPosition.x;
-    const dy = e.clientY - this.previousPointerPosition.y;
-
-    this.previousPointerPosition = { x: e.clientX, y: e.clientY };
-
-    const unitsPerPixel = this.baseUnitsPerPixel / this.camera.zoom;
     
-    this.camera.position.x -= dx * unitsPerPixel;
-    this.camera.position.y += dy * unitsPerPixel;
-    this.markDirty();
+    if (this.isDragging) {
+      const dx = e.clientX - this.previousPointerPosition.x;
+      const dy = e.clientY - this.previousPointerPosition.y;
+
+      this.previousPointerPosition = { x: e.clientX, y: e.clientY };
+
+      const unitsPerPixel = this.baseUnitsPerPixel / this.camera.zoom;
+      
+      this.camera.position.x -= dx * unitsPerPixel;
+      this.camera.position.y += dy * unitsPerPixel;
+      
+      if (this.currentSnapConfig.enabled) {
+        this.snapController.clearSnap();
+      }
+
+      // Update cursor position during drag as well
+      const worldPoint = this.picker.getWorldPointFromScreen(e.clientX, e.clientY);
+      this.cursorOverlayGroup.position.copy(worldPoint);
+
+      this.markDirty();
+    } else {
+      // Immediate OSNAP evaluation (no debounce)
+      if (this.currentSnapConfig.enabled) {
+        this.snapController.evaluateHit(e.clientX, e.clientY);
+      }
+
+      const worldPoint = this.picker.getWorldPointFromScreen(e.clientX, e.clientY);
+      const snap = this.currentSnapConfig.enabled ? this.snapController.getCurrentSnap() : null;
+
+      if (this.measurementController.handlePointerMove(worldPoint, snap)) {
+        this.cursorOverlayGroup.position.copy(worldPoint);
+        this.markDirty();
+        // If measuring, don't show hover highlights
+        if (this.hoverTimer) {
+          window.clearTimeout(this.hoverTimer);
+          this.hoverTimer = null;
+        }
+        this.highlightHoverEntity(null);
+        if (this.onEntityHovered) this.onEntityHovered(null, e.clientX, e.clientY);
+        return;
+      }
+
+      this.cursorOverlayGroup.position.copy(worldPoint);
+      this.markDirty();
+
+      // Debounced hover detection
+      if (this.hoverHighlightEnabled || this.onEntityHovered) {
+        if (this.hoverTimer) {
+          window.clearTimeout(this.hoverTimer);
+        }
+        this.hoverTimer = window.setTimeout(() => {
+          this.handleHoverTest(e);
+        }, this.hoverDelayMs);
+      }
+    }
+  };
+
+  private handlePointerLeave = (e: PointerEvent) => {
+    if (this.hoverTimer) {
+      window.clearTimeout(this.hoverTimer);
+      this.hoverTimer = null;
+    }
+    this.highlightHoverEntity(null);
+    if (this.currentSnapConfig.enabled) {
+      this.snapController.clearSnap();
+    }
+    if (this.onEntityHovered) {
+      this.onEntityHovered(null, e.clientX, e.clientY);
+    }
   };
 
   private handlePointerUp = (e: PointerEvent) => {
     if (this.isDragging) {
       this.isDragging = false;
       this.container.releasePointerCapture(e.pointerId);
+
+      // Distinguish click from drag (e.g. less than 4 pixels distance)
+      const dist = Math.hypot(e.clientX - this.pointerDownPosition.x, e.clientY - this.pointerDownPosition.y);
+      if (dist < 4) {
+        const worldPoint = this.picker.getWorldPointFromScreen(e.clientX, e.clientY);
+        const snap = this.currentSnapConfig.enabled ? this.snapController.getCurrentSnap() : null;
+        
+        if (this.measurementController.handlePointClick(worldPoint, snap)) {
+          return; // Click was consumed by measurement, do not select entities
+        }
+
+        if (this.currentSnapConfig.enabled) {
+          // When Snap is enabled, click does NOT open inspection / selection.
+          this.highlightHoverEntity(null);
+          if (this.onEntityHovered) {
+            this.onEntityHovered(null, e.clientX, e.clientY);
+          }
+        } else {
+          if (this.currentInteractionConfig?.selectionOnClick !== false) {
+            this.handleHitTest(e);
+          }
+        }
+      }
     }
   };
+
+  private handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      let clearedMeasurement = false;
+      if (this.measurementController.isActive()) {
+        this.measurementController.cancel();
+        clearedMeasurement = true;
+      }
+      if (this.measurementController.getHistory().length > 0) {
+        this.measurementController.clearMeasurements();
+        clearedMeasurement = true;
+      }
+      
+      if (!clearedMeasurement) {
+        this.clearSelection();
+      }
+    }
+  };
+
+  private handleHitTest(e: PointerEvent) {
+    // Perform hit test and call onEntitySelected
+    const ref = this.performRaycast(e);
+    // If we clicked, optionally clear hover to avoid double overlay if they overlap
+    if (ref) {
+      this.highlightHoverEntity(null);
+      if (this.onEntityHovered) {
+        this.onEntityHovered(null, e.clientX, e.clientY);
+      }
+    }
+    this.highlightEntity(ref);
+    if (this.onEntitySelected) this.onEntitySelected(ref);
+  }
+
+  private handleHoverTest(e: PointerEvent) {
+    if (this.currentSnapConfig.enabled) return;
+    const ref = this.performRaycast(e);
+    
+    if (this.hoverHighlightEnabled || this.onEntityHovered) {
+      this.highlightHoverEntity(ref);
+      if (this.onEntityHovered) {
+        this.onEntityHovered(ref, e.clientX, e.clientY);
+      }
+    }
+  }
+
+  public setSnappingConfig(config: CadSnappingConfig) {
+    this.currentSnapConfig = config;
+    this.snapController.updateConfig(config);
+    if ((this.picker as any).context) {
+      (this.picker as any).context.zoomTolerancePixels = config.tolerancePixels;
+    }
+    
+    // Phase 5.19.2: Clear stale selection if we transition to Snap mode
+    // and selection on click is disabled.
+    if (this.currentSnapConfig.enabled && !this.currentInteractionConfig?.selectionOnSnapClick) {
+      this.clearSelection();
+    }
+    
+    this.markDirty();
+  }
+
+  public setInteractionConfig(config: CadInteractionConfig) {
+    this.currentInteractionConfig = config;
+    this.hoverHighlightEnabled = config.hoverHighlight;
+    // To support config-driven pickbox and crosshair updates:
+    this.rebuildCursorOverlay(config);
+    
+    // Clear stale selection if we toggle selection on click to OFF while Snap is ON
+    if (this.currentSnapConfig.enabled && !this.currentInteractionConfig?.selectionOnSnapClick) {
+      this.clearSelection();
+    }
+    
+    this.markDirty();
+  }
+
+  private clearSelection() {
+    this.highlightEntity(null);
+    if (this.onEntitySelected) {
+      this.onEntitySelected(null);
+    }
+  }
+
+  private rebuildCursorOverlay(config?: CadInteractionConfig) {
+    // Clear old cursor
+    while (this.cursorOverlayGroup.children.length > 0) {
+      const child = this.cursorOverlayGroup.children[0] as THREE.Mesh | THREE.LineSegments;
+      this.cursorOverlayGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+        else child.material.dispose();
+      }
+    }
+
+    // Since we don't have direct access to interaction config easily here, 
+    // we use provided config, or fallback to default
+    const pickboxConfig = config?.pickbox || { enabled: true, sizePixels: 10, borderWidth: 1 };
+    const crosshairConfig = config?.crosshair || { enabled: true, horizontalLengthPixels: 100, verticalLengthPixels: 100, lineWidth: 1 };
+
+    const color = 0xffffff; // White cursor
+
+    if (pickboxConfig.enabled) {
+      // Create a 1x1 plane geometry (wireframe for border only, no fill)
+      const geom = new THREE.PlaneGeometry(1, 1);
+      const mat = new THREE.MeshBasicMaterial({ 
+        color, 
+        wireframe: true, 
+        depthTest: false, 
+        depthWrite: false 
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.name = "pickbox";
+      // We store the target pixel size in userData to scale it dynamically
+      mesh.userData.sizePixels = pickboxConfig.sizePixels;
+      this.cursorOverlayGroup.add(mesh);
+    }
+
+    if (crosshairConfig.enabled) {
+      const geom = new THREE.BufferGeometry();
+      const vertices = new Float32Array([
+        -0.5, 0, 0,  // horizontal line
+         0.5, 0, 0,
+         0, -0.5, 0, // vertical line
+         0,  0.5, 0
+      ]);
+      geom.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+      const mat = new THREE.LineBasicMaterial({
+        color,
+        depthTest: false,
+        depthWrite: false
+      });
+      const lines = new THREE.LineSegments(geom, mat);
+      lines.name = "crosshair";
+      lines.userData.hSize = crosshairConfig.horizontalLengthPixels;
+      lines.userData.vSize = crosshairConfig.verticalLengthPixels;
+      this.cursorOverlayGroup.add(lines);
+    }
+  }
+
+  private handleSnapChanged(snap: MeasurementReference | null) {
+    // Clear old indicator
+    while (this.snapIndicatorGroup.children.length > 0) {
+      const child = this.snapIndicatorGroup.children[0] as THREE.Mesh;
+      this.snapIndicatorGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) child.material.forEach(m => m.dispose());
+        else child.material.dispose();
+      }
+    }
+
+    if (snap && this.currentSnapConfig.enabled) {
+      const color = 0xffff00; // YELLOW
+      let geometry: THREE.BufferGeometry;
+      
+      const size = this.currentSnapConfig.indicatorSizePixels || 10;
+      const unitsPerPixel = this.baseUnitsPerPixel / this.camera.zoom;
+      
+      // We create the geometry with a size of 1, and scale the mesh
+      if (snap.snapType === 'endpoint') {
+        geometry = new THREE.PlaneGeometry(1, 1);
+      } else if (snap.snapType === 'midpoint') {
+        geometry = new THREE.CircleGeometry(1 / 1.5, 3);
+      } else if (snap.snapType === 'center') {
+        geometry = new THREE.CircleGeometry(1 / 2, 16);
+      } else {
+        geometry = new THREE.CircleGeometry(1 / 2, 4); 
+      }
+
+      const material = new THREE.MeshBasicMaterial({
+        color: color,
+        depthTest: false,
+        depthWrite: false,
+        transparent: true,
+        opacity: 1.0,
+        wireframe: snap.snapType === 'endpoint' || snap.snapType === 'center'
+      });
+
+      const mesh = new THREE.Mesh(geometry, material);
+      mesh.name = "snap_indicator";
+      mesh.position.set(snap.point.x, snap.point.y, snap.point.z || 0);
+      // Scale it so that 1 world unit becomes 'size' screen pixels
+      mesh.scale.set(size * unitsPerPixel, size * unitsPerPixel, 1);
+      mesh.renderOrder = 9999;
+      this.snapIndicatorGroup.add(mesh);
+    }
+
+    this.markDirty();
+    if (this.onSnapChanged) {
+      this.onSnapChanged(snap);
+    }
+  }
+
+  private updateMeasurementVisuals(
+    state: MeasurementState,
+    activePreview: { point1: THREE.Vector3; currentPoint: THREE.Vector3; distance: number } | null,
+    history: DistanceMeasurement[]
+  ) {
+    // Hide all existing objects from the pool
+    this.measPointPool.forEach(m => m.visible = false);
+    this.measLinePool.forEach(m => m.visible = false);
+
+    const unitsPerPixel = this.baseUnitsPerPixel / this.camera.zoom;
+    const markerSize = 6 * unitsPerPixel; 
+
+    let pointIndex = 0;
+    let lineIndex = 0;
+
+    const getPointMesh = () => {
+      if (pointIndex >= this.measPointPool.length) {
+        const mesh = new THREE.Mesh(this.measPointGeom, this.measPointMat);
+        mesh.renderOrder = 1001;
+        this.measurementOverlayGroup.add(mesh);
+        this.measPointPool.push(mesh);
+      }
+      const mesh = this.measPointPool[pointIndex++];
+      mesh.visible = true;
+      return mesh;
+    };
+
+    const getLineMesh = () => {
+      if (lineIndex >= this.measLinePool.length) {
+        // Initialize with 2 dummy points
+        const geom = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+        const mesh = new THREE.LineSegments(geom, this.measLineMat);
+        mesh.renderOrder = 1001;
+        this.measurementOverlayGroup.add(mesh);
+        this.measLinePool.push(mesh);
+      }
+      const mesh = this.measLinePool[lineIndex++];
+      mesh.visible = true;
+      return mesh;
+    };
+
+    const drawPoint = (p: THREE.Vector3) => {
+      const mesh = getPointMesh();
+      mesh.position.copy(p);
+      mesh.scale.set(markerSize, markerSize, 1);
+    };
+
+    const drawLine = (p1: THREE.Vector3, p2: THREE.Vector3) => {
+      const mesh = getLineMesh();
+      const positions = mesh.geometry.attributes.position as THREE.BufferAttribute;
+      positions.setXYZ(0, p1.x, p1.y, p1.z);
+      positions.setXYZ(1, p2.x, p2.y, p2.z);
+      positions.needsUpdate = true;
+    };
+
+    for (const meas of history) {
+      drawPoint(meas.point1);
+      drawPoint(meas.point2);
+      drawLine(meas.point1, meas.point2);
+    }
+
+    if (activePreview) {
+      drawPoint(activePreview.point1);
+      drawPoint(activePreview.currentPoint);
+      drawLine(activePreview.point1, activePreview.currentPoint);
+    }
+    
+    this.markDirty();
+  }
+
+  private performRaycast(e: PointerEvent): SelectionReference | null {
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+
+    // Convert to NDC
+    const ndcX = (x / rect.width) * 2 - 1;
+    const ndcY = -(y / rect.height) * 2 + 1;
+    const mouseNDC = new THREE.Vector2(ndcX, ndcY);
+
+    this.raycaster.setFromCamera(mouseNDC, this.camera);
+
+    // Calculate dynamic Line threshold (~5 pixels visual tolerance)
+    const viewHeightWorld = (this.camera.top - this.camera.bottom) / this.camera.zoom;
+    const worldUnitsPerPixel = viewHeightWorld / rect.height;
+    this.raycaster.params.Line.threshold = worldUnitsPerPixel * 5;
+
+    this.camera.updateMatrixWorld();
+    this.scene.updateMatrixWorld(true);
+    const intersects = this.raycaster.intersectObjects(this.scene.children, true);
+
+    for (const intersect of intersects) {
+      const obj = intersect.object;
+      let instanceId: number | undefined;
+
+      if (obj.type === 'LineSegments' && intersect.index !== undefined) {
+        const geom = (obj as THREE.LineSegments).geometry as THREE.BufferGeometry;
+        const attr = geom.getAttribute('instanceId');
+        if (attr) {
+          instanceId = attr.getX(intersect.index);
+        }
+      } else if (obj.type === 'Mesh') {
+        // Could be Hatch/Solid (has instanceId buffer) or Text/Mtext (has userData)
+        if (obj.userData && obj.userData.renderInstanceId) {
+          instanceId = obj.userData.renderInstanceId;
+        } else if (intersect.face) {
+          const geom = (obj as THREE.Mesh).geometry as THREE.BufferGeometry;
+          const attr = geom.getAttribute('instanceId');
+          if (attr) {
+            instanceId = attr.getX(intersect.face.a);
+          }
+        }
+      } else if (obj.type === 'Sprite') {
+        if (obj.userData && obj.userData.renderInstanceId) {
+          instanceId = obj.userData.renderInstanceId;
+        }
+      }
+
+      if (instanceId !== undefined && instanceId > 0) {
+        const ref = this.getSelectionReference(instanceId);
+        if (ref) {
+          return ref;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private findEntityById(id: string): CadEntity | null {
+    if (!this.activeDoc) return null;
+    
+    // Check main entities
+    const mainMatch = this.activeDoc.entities.find(e => e.id === id);
+    if (mainMatch) return mainMatch;
+    
+    // Check blocks
+    if (this.activeDoc.blocks) {
+      for (const blockName in this.activeDoc.blocks) {
+        const block = this.activeDoc.blocks[blockName];
+        if (block && block.entities) {
+          const blockMatch = block.entities.find(e => e.id === id);
+          if (blockMatch) return blockMatch;
+        }
+      }
+    }
+    
+    return null;
+  }
+
+  private highlightEntity(ref: SelectionReference | null) {
+    // Clear old highlight
+    while (this.selectionOverlayGroup.children.length > 0) {
+      const child = this.selectionOverlayGroup.children[0] as any;
+      this.selectionOverlayGroup.remove(child);
+      if (child.geometry) child.geometry.dispose();
+      if (child.material) {
+        if (Array.isArray(child.material)) {
+          child.material.forEach((m: any) => m.dispose());
+        } else {
+          child.material.dispose();
+        }
+      }
+    }
+
+    if (!ref || !this.activeDoc) {
+      this.markDirty();
+      return;
+    }
+
+    const entity = this.findEntityById(ref.entityId);
+    if (!entity) {
+      this.markDirty();
+      return;
+    }
+
+    // Check layer visibility
+    const layerName = ref.layer;
+    const docLayer = this.activeDoc.layers.find(l => l.name === layerName);
+    if (docLayer && (!docLayer.visible || docLayer.frozen)) {
+      this.markDirty();
+      return; // Do not highlight hidden layer
+    }
+    const layerGroup = this.layerGroups.get(layerName);
+    if (layerGroup && !layerGroup.visible) {
+      this.markDirty();
+      return;
+    }
+
+    // Build transformation stack for nested INSERTs
+    let parentMatrix = new THREE.Matrix4();
+    if (ref.insertPath && ref.insertPath.length > 0) {
+      for (const insertId of ref.insertPath) {
+        const insertEntity = this.findEntityById(insertId) as CadInsertEntity;
+        if (insertEntity && insertEntity.type === 'INSERT') {
+          const block = this.activeDoc.blocks ? this.activeDoc.blocks[insertEntity.blockName] : null;
+          if (block) {
+            const insertMat = new THREE.Matrix4();
+            const position = new THREE.Vector3(...(insertEntity.geometry.insertionPoint || [0,0,0]));
+            const euler = new THREE.Euler(0, 0, THREE.MathUtils.degToRad(insertEntity.geometry.rotation || 0));
+            const quaternion = new THREE.Quaternion().setFromEuler(euler);
+            const scale = new THREE.Vector3(...(insertEntity.geometry.scale || [1, 1, 1]));
+            insertMat.compose(position, quaternion, scale);
+            
+            const basePoint = block.basePoint || [0,0,0];
+            const baseOffset = new THREE.Matrix4().makeTranslation(-basePoint[0], -basePoint[1], -basePoint[2]);
+            insertMat.multiply(baseOffset);
+            
+            parentMatrix.multiply(insertMat);
+          }
+        }
+      }
+    }
+
+    const getContext = (): RenderContext => {
+      return {
+        lines: [], colors: [], instanceIds: [],
+        hatchPositions: [], hatchIndices: [], hatchColors: [], hatchInstanceIds: [], hatchCurrentIndexOffset: 0, textMeshes: [], arrowheadMeshes: [],
+        stats: {
+          totalLwpolylines: 0, renderedLwpolylines: 0, renderedHatches: 0, hatchTriangles: 0, renderedTexts: 0, resolvedInserts: 0,
+          skippedInserts: 0, renderedSplines: 0, unsupportedSplines: 0, splineSegments: 0, renderedCircles: 0, renderedArcs: 0, renderedEllipses: 0, renderedPoints: 0,
+          renderedDimensions: 0, renderedLeaders: 0, renderedMLeaders: 0, renderedArcDimensions: 0, renderedMTexts: 0
+        }
+      };
+    };
+
+    const ctx = getContext();
+    this.processEntities([entity], parentMatrix, this.activeDoc, 0, () => ctx, ctx.stats, {}, [], ref.space, ref.viewportId);
+
+    const highlightColor = 0xffff00; // Yellow highlight
+    console.log(`[Highlight] Generated vertices: lines=${ctx.lines.length / 3}, hatches=${ctx.hatchPositions.length / 3}, texts=${ctx.textMeshes.length}`);
+    if (ctx.lines.length > 0) {
+        console.log(`[Highlight] First line vertex: ${ctx.lines[0]}, ${ctx.lines[1]}, ${ctx.lines[2]}`);
+    }
+
+    // Lines (LWPOLYLINE, LINE, ARC, CIRCLE, SPLINE, borders)
+    if (ctx.lines.length > 0) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.lines, 3));
+      const mat = new THREE.LineBasicMaterial({
+        color: highlightColor,
+        depthTest: false,
+        depthWrite: false,
+        linewidth: 2 // Has no effect on most WebGL implementations, but logical intent
+      });
+      const lines = new THREE.LineSegments(geom, mat);
+      lines.renderOrder = 999;
+      this.selectionOverlayGroup.add(lines);
+    }
+
+    // Fill meshes (HATCH, SOLID)
+    if (ctx.hatchPositions.length > 0) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.hatchPositions, 3));
+      geom.setIndex(ctx.hatchIndices);
+      const mat = new THREE.MeshBasicMaterial({
+        color: highlightColor,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.4
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.renderOrder = 999;
+      this.selectionOverlayGroup.add(mesh);
+    }
+
+    // Texts (TEXT, MTEXT) - simplified highlight as bounding box
+    for (const mesh of ctx.textMeshes) {
+        mesh.geometry.computeBoundingBox();
+        const bbox = mesh.geometry.boundingBox;
+        if (bbox) {
+            const width = bbox.max.x - bbox.min.x;
+            const height = bbox.max.y - bbox.min.y;
+            const center = new THREE.Vector3();
+            bbox.getCenter(center);
+            
+            const planeGeom = new THREE.PlaneGeometry(width, height);
+            const mat = new THREE.MeshBasicMaterial({
+                color: highlightColor,
+                side: THREE.DoubleSide,
+                depthTest: false,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0.4
+            });
+            const plane = new THREE.Mesh(planeGeom, mat);
+            plane.position.copy(center);
+            plane.quaternion.copy(mesh.quaternion);
+            plane.renderOrder = 999;
+            this.selectionOverlayGroup.add(plane);
+        }
+    }
+
+    this.markDirty();
+  }
+
+  private isSameReference(refA: SelectionReference | null, refB: SelectionReference | null): boolean {
+    if (refA === refB) return true;
+    if (!refA || !refB) return false;
+    return refA.entityId === refB.entityId &&
+           refA.space === refB.space &&
+           refA.insertPath.join() === refB.insertPath.join();
+  }
+
+  private highlightHoverEntity(ref: SelectionReference | null) {
+    if (this.currentSnapConfig.enabled) {
+      ref = null;
+    }
+    if (this.isSameReference(ref, this.currentHoverRef)) return;
+    this.currentHoverRef = ref;
+
+    // Clear existing hover overlay
+    while (this.hoverOverlayGroup.children.length > 0) {
+      const child = this.hoverOverlayGroup.children[0];
+      this.hoverOverlayGroup.remove(child);
+      if ((child as THREE.Mesh).geometry) ((child as THREE.Mesh).geometry as THREE.BufferGeometry).dispose();
+      if ((child as THREE.Mesh).material) {
+        const mat = (child as THREE.Mesh).material;
+        if (Array.isArray(mat)) mat.forEach(m => m.dispose());
+        else mat.dispose();
+      }
+    }
+
+    if (!ref) {
+      this.markDirty();
+      return;
+    }
+
+    if (!this.hoverHighlightEnabled) {
+      return;
+    }
+
+    const entity = this.findEntityById(ref.entityId);
+    if (!entity) return;
+
+    // Resolve transform context if it's inside an INSERT
+    const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined);
+
+    // Mock RenderContext for collecting geometries
+    const ctx = {
+      lines: [] as number[],
+      colors: [] as number[],
+      instanceIds: [] as number[],
+      hatchPositions: [] as number[],
+      hatchIndices: [] as number[],
+      hatchColors: [] as number[],
+      hatchInstanceIds: [] as number[],
+      hatchCurrentIndexOffset: 0,
+      textMeshes: [] as THREE.Mesh[],
+      arrowheadMeshes: [] as THREE.Mesh[],
+      stats: { arcs: 0, ellipses: 0, points: 0, dimensions: 0, leaders: 0, mleaders: 0, arcDimensions: 0, mtexts: 0 }
+    };
+
+    const getContext = () => (ctx as any);
+    this.processEntities([entity], parentMatrix, this.activeDoc!, 0, getContext, ctx.stats as any, {}, [], ref.space, ref.viewportId);
+
+    const highlightColor = 0xff00ff; // Magenta hover
+
+    if (ctx.lines.length > 0) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.lines, 3));
+      const mat = new THREE.LineBasicMaterial({
+        color: highlightColor,
+        depthTest: false,
+        depthWrite: false
+      });
+      const lines = new THREE.LineSegments(geom, mat);
+      lines.renderOrder = 998;
+      this.hoverOverlayGroup.add(lines);
+    }
+
+    if (ctx.hatchPositions.length > 0) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.hatchPositions, 3));
+      geom.setIndex(ctx.hatchIndices);
+      const mat = new THREE.MeshBasicMaterial({
+        color: highlightColor,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.3
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.renderOrder = 998;
+      this.hoverOverlayGroup.add(mesh);
+    }
+
+    for (const mesh of ctx.textMeshes) {
+        mesh.geometry.computeBoundingBox();
+        const bbox = mesh.geometry.boundingBox;
+        if (bbox) {
+            const width = bbox.max.x - bbox.min.x;
+            const height = bbox.max.y - bbox.min.y;
+            const center = new THREE.Vector3();
+            bbox.getCenter(center);
+            
+            const planeGeom = new THREE.PlaneGeometry(width, height);
+            const mat = new THREE.MeshBasicMaterial({
+                color: highlightColor,
+                side: THREE.DoubleSide,
+                depthTest: false,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0.3
+            });
+            const plane = new THREE.Mesh(planeGeom, mat);
+            plane.position.copy(center);
+            plane.quaternion.copy(mesh.quaternion);
+            plane.renderOrder = 998;
+            this.hoverOverlayGroup.add(plane);
+        }
+    }
+
+    this.markDirty();
+  }
 
   private animate = () => {
     if (this.isDisposed) return;
@@ -1536,6 +2440,27 @@ Batched Hatch Vertices: ${totalHatchVertices}
     // Skip all GPU work when the camera and scene have not changed.
     if (!this.needsRender) return;
     this.needsRender = false;
+
+    // Phase 5.19.2 - Auto-size snap indicators based on zoom
+    if (this.snapIndicatorGroup && this.snapIndicatorGroup.children.length > 0) {
+      const size = this.currentSnapConfig.indicatorSizePixels || 10;
+      const unitsPerPixel = this.baseUnitsPerPixel / this.camera.zoom;
+      this.snapIndicatorGroup.children[0].scale.setScalar(size * unitsPerPixel);
+    }
+
+    if (this.cursorOverlayGroup && this.cursorOverlayGroup.children.length > 0) {
+      const unitsPerPixel = this.baseUnitsPerPixel / this.camera.zoom;
+      for (const child of this.cursorOverlayGroup.children) {
+        if (child.name === "pickbox") {
+          const size = child.userData.sizePixels || 10;
+          child.scale.setScalar(size * unitsPerPixel);
+        } else if (child.name === "crosshair") {
+          const hSize = child.userData.hSize || 100;
+          const vSize = child.userData.vSize || 100;
+          child.scale.set(hSize * unitsPerPixel, vSize * unitsPerPixel, 1);
+        }
+      }
+    }
 
     if (this.activeViewports.length > 0 && hasPermission(PERMISSIONS.CAD_VIEWPORT_VIEW)) {
       this.renderer.setScissorTest(false);
@@ -1663,10 +2588,32 @@ Batched Hatch Vertices: ${totalHatchVertices}
       this.renderer.autoClear = true;
       this.renderer.render(this.scene, this.camera);
     }
+    
+    // Dispatch render update event for overlays (e.g. MeasurementOverlay)
+    this.container.dispatchEvent(new CustomEvent('cad-render-update'));
   };
 
   private clearScene() {
     this.activeViewports = [];
+    
+    // Preserve special nodes: camera, gridHelper, selectionOverlayGroup, hoverOverlayGroup, snapIndicatorGroup
+    const preserveNodes = new Set<THREE.Object3D>([
+        this.camera, 
+        this.selectionOverlayGroup,
+        this.hoverOverlayGroup,
+        this.snapIndicatorGroup,
+        this.cursorOverlayGroup
+    ]);
+    if (this.gridHelper) {
+        preserveNodes.add(this.gridHelper);
+    }
+    
+    const toRemove: THREE.Object3D[] = [];
+    this.scene.children.forEach(c => {
+      if (!preserveNodes.has(c)) {
+        toRemove.push(c);
+      }
+    });
     
     const disposeObject = (obj: THREE.Object3D) => {
       if (obj instanceof THREE.LineSegments || obj instanceof THREE.Mesh) {
@@ -1689,13 +2636,27 @@ Batched Hatch Vertices: ${totalHatchVertices}
       }
     };
     
-    this.scene.traverse((child) => {
-      disposeObject(child);
+    toRemove.forEach((child) => {
+      child.traverse((c) => disposeObject(c));
+      this.scene.remove(child);
     });
+  }
 
-    while(this.scene.children.length > 0){ 
-      this.scene.remove(this.scene.children[0]);
-    }
+  public getScreenPointFromWorld(worldPoint: THREE.Vector3): { x: number; y: number } | null {
+    if (!this.camera || !this.renderer) return null;
+    
+    const clone = worldPoint.clone();
+    clone.project(this.camera);
+    
+    const rect = this.renderer.domElement.getBoundingClientRect();
+    const x = ((clone.x + 1) / 2) * rect.width;
+    const y = (-(clone.y - 1) / 2) * rect.height;
+    
+    return { x, y };
+  }
+
+  public getContainer(): HTMLDivElement {
+    return this.container;
   }
 
   public dispose() {
@@ -1705,7 +2666,8 @@ Batched Hatch Vertices: ${totalHatchVertices}
       cancelAnimationFrame(this.animationFrameId);
     }
     
-    this.resizeObserver.disconnect();
+    this.highlightEntity(null);
+    this.highlightHoverEntity(null);
 
     if (this.container) {
       this.container.removeEventListener('wheel', this.handleWheel);
@@ -1713,8 +2675,10 @@ Batched Hatch Vertices: ${totalHatchVertices}
       this.container.removeEventListener('pointermove', this.handlePointerMove);
       this.container.removeEventListener('pointerup', this.handlePointerUp);
       this.container.removeEventListener('pointercancel', this.handlePointerUp);
+      this.container.removeEventListener('pointerleave', this.handlePointerLeave);
     }
     
+    this.resizeObserver.disconnect();
     this.clearScene();
     
     this.renderer.dispose();

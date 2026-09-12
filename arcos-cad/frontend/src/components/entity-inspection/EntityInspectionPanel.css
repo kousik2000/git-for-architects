@@ -1,0 +1,129 @@
+.cad-inspection-panel {
+  position: absolute;
+  top: 16px;
+  right: 16px; /* Similar to Layers panel but could be aligned if they are both open */
+  width: 320px;
+  max-height: calc(100% - 32px);
+  background-color: var(--cad-panel-bg, #1e1e1e);
+  border: 1px solid var(--cad-border, #333);
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 100;
+  color: var(--cad-text, #e0e0e0);
+  font-family: var(--cad-font, system-ui, -apple-system, sans-serif);
+  font-size: 13px;
+}
+
+.cad-ins-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background-color: var(--cad-panel-header-bg, #252526);
+  border-bottom: 1px solid var(--cad-border, #333);
+}
+
+.cad-ins-title {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.cad-ins-type {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--cad-accent, #00ffff);
+}
+
+.cad-ins-handle {
+  font-family: monospace;
+  color: #888;
+  font-size: 12px;
+}
+
+.cad-ins-close {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  line-height: 1;
+  transition: color 0.2s;
+}
+
+.cad-ins-close:hover {
+  color: #fff;
+}
+
+.cad-ins-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cad-ins-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.cad-ins-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #888;
+  border-bottom: 1px solid var(--cad-border, #333);
+  padding-bottom: 4px;
+  margin-bottom: 4px;
+}
+
+.cad-ins-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  line-height: 1.4;
+}
+
+.cad-ins-label {
+  color: #aaa;
+  flex-shrink: 0;
+}
+
+.cad-ins-val {
+  color: #fff;
+  text-align: right;
+  word-break: break-word;
+}
+
+.cad-ins-na {
+  color: #666;
+  font-style: italic;
+}
+
+.cad-ins-path {
+  font-family: monospace;
+  font-size: 12px;
+  color: #00ffff;
+  text-align: right;
+  word-break: break-all;
+}
+
+.cad-ins-text-content {
+  background: var(--cad-input-bg, #111);
+  border: 1px solid var(--cad-border, #333);
+  padding: 8px;
+  border-radius: 4px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  color: #ddd;
+  max-height: 120px;
+  overflow-y: auto;
+}

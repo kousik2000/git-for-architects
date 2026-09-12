@@ -70,7 +70,6 @@ function applyViewportTransform(
   };
 }
 
-const EPSILON = 1e-9;
 function assertClose(a: number, b: number, label: string, tol = 1e-6): void {
   if (Math.abs(a - b) > tol) {
     throw new Error(`FAIL [${label}]: expected ${b.toFixed(10)}, got ${a.toFixed(10)}, diff=${Math.abs(a-b)}`);

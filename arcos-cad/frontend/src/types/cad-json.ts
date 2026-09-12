@@ -82,6 +82,8 @@ export interface CadHatchEntity extends CadEntityBase {
 export interface CadTextEntity extends CadEntityBase {
   type: 'TEXT' | 'MTEXT';
   text: string;
+  styleName?: string; // Added in 5.19.3
+  inlineFont?: string; // Added in 5.19.3
   geometry: {
     location: [number, number, number];
     height?: number; // Added in 5.9A
@@ -182,6 +184,12 @@ export interface CadLayout {
   entities: CadEntity[];
 }
 
+export interface CadTextStyle {
+  name: string;
+  font: string;
+  bigfont: string;
+}
+
 export interface ArcosCadDocument {
   version: string;
   document: CadDocumentInfo;
@@ -194,6 +202,7 @@ export interface ArcosCadDocument {
   statistics: CadStatistics;
   warnings: CadWarning[];
   linetypes?: Record<string, CadLinetype>; // Added in 5.9A
+  styles?: Record<string, CadTextStyle>; // Added in 5.19.3
 }
 
 export interface CadParseResponse {

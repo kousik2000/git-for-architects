@@ -36,6 +36,7 @@ class ArcosDxfParser:
         self.layouts = {} # Phase 5.11B: PaperSpace layouts
         self.entities = []
         self.linetypes = {}
+        self.styles = {} # Phase 5.19.3: Text styles and fonts
         self.bounds = {"min": [0, 0, 0], "max": [0, 0, 0]}
 
     def _add_warning(self, code, message, entity_type=None):
@@ -61,6 +62,7 @@ class ArcosDxfParser:
         self._extract_entities()
         self._extract_layouts()
         self._extract_linetypes()      # Phase 5.9A: extract linetype patterns
+        self._extract_styles()         # Phase 5.19.3: extract text styles
 
         self.stats["parsingTimeMs"] = int((time.time() - start_time) * 1000)
 
@@ -91,6 +93,7 @@ class ArcosDxfParser:
             "bounds": self.bounds,
             "layers": self.layers,
             "linetypes": self.linetypes,
+            "styles": self.styles,
             "blocks": self.blocks,
             "layouts": self.layouts,
             "entities": self.entities,
@@ -110,6 +113,15 @@ class ArcosDxfParser:
                 pattern = [t.value for t in lt.pattern_tags.tags if t.code == 49]
             self.linetypes[name] = {
                 "pattern": pattern
+            }
+
+    def _extract_styles(self):
+        for style in self.doc.styles:
+            name = style.dxf.name
+            self.styles[name] = {
+                "name": name,
+                "font": style.dxf.get("font", ""),
+                "bigfont": style.dxf.get("bigfont", "")
             }
 
     def _extract_layers(self):
@@ -669,10 +681,20 @@ class ArcosDxfParser:
                     geometry["halign"] = 2
                 elif r"\pxql;" in raw_text:
                     geometry["halign"] = 0
+
+                # Phase 5.19.3: Extract inline font override (e.g. \fStylus BT|b0|i0|c0|p34;)
+                import re
+                raw_orig = getattr(entity, 'text', '')
+                font_match = re.search(r'\\f([^|;]+)(?:\||;)', raw_orig)
+                if font_match:
+                    props["inlineFont"] = font_match.group(1).strip()
             except Exception:
                 pass
 
         props["geometry"] = geometry
+        
+        # Phase 5.19.3: Add text style name for font fidelity
+        props["styleName"] = entity.dxf.get("style", "Standard")
 
         # text at top level (existing convention)
         if entity.dxftype() == "MTEXT" and hasattr(entity, "plain_text"):

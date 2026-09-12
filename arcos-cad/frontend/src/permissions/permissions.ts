@@ -34,8 +34,11 @@ export const PERMISSIONS = {
 
   // Entity
   CAD_ENTITY_SELECT: 'cad.entity.select',
+  CAD_ENTITY_INSPECT: 'cad.entity.inspect',
 
   // Measure
+  CAD_MEASURE_VIEW: 'cad.measure.view',
+  CAD_SNAP_VIEW: 'cad.snap.view',
   CAD_MEASURE_DISTANCE: 'cad.measure.distance',
   CAD_MEASURE_AREA: 'cad.measure.area',
   CAD_MEASURE_ANGLE: 'cad.measure.angle',

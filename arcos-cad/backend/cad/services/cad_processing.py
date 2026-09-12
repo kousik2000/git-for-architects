@@ -24,22 +24,29 @@ def process_dwg_to_arcos_json(uploaded_file, filename):
     temp_dxf_path = os.path.join(temp_dir, "temp.dxf")
     
     try:
-        # 1. Forward the DWG to the FastAPI converter
-        files = {'file': (filename, uploaded_file.file, uploaded_file.content_type)}
-        response = requests.post(converter_url, files=files, stream=True)
-        
-        if response.status_code != 200:
-            try:
-                error_data = response.json()
-            except ValueError:
-                error_data = {"message": "The CAD converter returned an invalid response."}
-            raise CADProcessingError(f"Conversion failed: {error_data.get('message', 'Unknown error')}")
-            
-        # 2. Save the resulting DXF locally
-        with open(temp_dxf_path, 'wb') as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                if chunk:
+        is_dxf = filename.lower().endswith('.dxf')
+        if is_dxf:
+            # Skip converter, it's already a DXF
+            with open(temp_dxf_path, 'wb') as f:
+                for chunk in uploaded_file.chunks():
                     f.write(chunk)
+        else:
+            # 1. Forward the DWG to the FastAPI converter
+            files = {'file': (filename, uploaded_file.file, uploaded_file.content_type)}
+            response = requests.post(converter_url, files=files, stream=True)
+            
+            if response.status_code != 200:
+                try:
+                    error_data = response.json()
+                except ValueError:
+                    error_data = {"message": "The CAD converter returned an invalid response."}
+                raise CADProcessingError(f"Conversion failed: {error_data.get('message', 'Unknown error')}")
+                
+            # 2. Save the resulting DXF locally
+            with open(temp_dxf_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
                     
         # 3. Parse the DXF into ARCOS JSON
         parser = ArcosDxfParser(temp_dxf_path)

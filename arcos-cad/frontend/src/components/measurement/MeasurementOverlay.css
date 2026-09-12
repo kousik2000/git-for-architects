@@ -1,0 +1,23 @@
+.measurement-overlay-container {
+  z-index: 100; /* above canvas, below popups */
+}
+
+.measurement-label {
+  position: absolute;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.7);
+  color: #00ffff; /* Cyan to match the line */
+  border: 1px solid #00ffff;
+  border-radius: 4px;
+  font-family: var(--cad-font-mono, monospace);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.measurement-history-label {
+  color: #cccccc;
+  border-color: #555555;
+  background-color: rgba(0, 0, 0, 0.6);
+}
