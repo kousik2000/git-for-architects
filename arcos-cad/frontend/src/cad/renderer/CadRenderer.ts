@@ -8,6 +8,8 @@ import { CadPicker, type CadPickingContext } from '../picking/CadPicker';
 import { CadSnapController } from '../snapping/CadSnapController';
 import type { MeasurementReference } from '../types/measurement';
 import type { CadSnappingConfig } from '../config/CadConfiguration';
+import type { ComparisonChange } from '../../comparison/types/comparison-types';
+import type { CadNavigationState } from '../../comparison/navigation/ComparisonNavigationController';
 
 interface PathInfo {
   points: THREE.Vector2[];
@@ -185,12 +187,16 @@ export class CadRenderer {
   public hoverHighlightEnabled = true;
   public hoverDelayMs = 200;
   private hoverOverlayGroup = new THREE.Group();
+  private comparisonOverlayGroup = new THREE.Group();
   private currentHoverRef: SelectionReference | null = null;
   private hoverTimer: number | null = null;
+  private currentChangeFocusGroup = new THREE.Group();
 
   private docBoundsMin: [number, number, number] | null = null;
   private docBoundsMax: [number, number, number] | null = null;
   private activeDoc: ArcosCadDocument | null = null;
+
+  public onNavigationChanged?: (state: CadNavigationState) => void;
 
   private modelSpaceGroup: THREE.Group | null = null;
   private activeViewports: {
@@ -257,6 +263,14 @@ export class CadRenderer {
     this.hoverOverlayGroup.name = 'hoverOverlayGroup';
     this.hoverOverlayGroup.renderOrder = 998;
     this.scene.add(this.hoverOverlayGroup);
+
+    this.comparisonOverlayGroup.name = 'comparisonOverlayGroup';
+    this.comparisonOverlayGroup.renderOrder = 997;
+    this.scene.add(this.comparisonOverlayGroup);
+
+    this.currentChangeFocusGroup.name = 'currentChangeFocusGroup';
+    this.currentChangeFocusGroup.renderOrder = 9999;
+    this.scene.add(this.currentChangeFocusGroup);
 
     this.snapIndicatorGroup.name = 'snapIndicatorGroup';
     this.snapIndicatorGroup.renderOrder = 1000;
@@ -1617,6 +1631,11 @@ Batched Hatch Vertices: ${totalHatchVertices}
     this.camera.lookAt(cx, cy, 0);
     this.camera.zoom = 1;
 
+    if (this.onNavigationChanged) {
+      const state = this.getNavigationState();
+      if (state) this.onNavigationChanged(state);
+    }
+
     const aspect = this.container.clientWidth / this.container.clientHeight;
     const padding = 1.1;
 
@@ -1636,6 +1655,151 @@ Batched Hatch Vertices: ${totalHatchVertices}
     this.camera.updateProjectionMatrix();
 
     this.baseUnitsPerPixel = targetHeight / this.container.clientHeight;
+    this.markDirty();
+  }
+
+  public getEntityWorldBounds(ref: import('../../comparison/types/comparison-types').ComparisonEntityReference) {
+    if (!this.activeDoc) return null;
+    let targetSpaceEntities = this.activeDoc.entities;
+    if (ref.space !== 'model' && this.activeDoc.layouts[ref.space]) {
+      targetSpaceEntities = this.activeDoc.layouts[ref.space].entities;
+    }
+    
+    let currentEntities = targetSpaceEntities;
+    let transform = new THREE.Matrix4();
+    
+    if (ref.insertPath) {
+      for (const insertId of ref.insertPath) {
+        const insertEntity = currentEntities.find(e => e.id === insertId) as any;
+        if (!insertEntity || insertEntity.type !== 'INSERT') return null;
+        
+        const block = this.activeDoc.blocks ? this.activeDoc.blocks[insertEntity.blockName] : null;
+        if (!block) return null;
+        
+        const pos = new THREE.Vector3(...(insertEntity.geometry.insertionPoint || [0,0,0]));
+        const euler = new THREE.Euler(0, 0, THREE.MathUtils.degToRad(insertEntity.geometry.rotation || 0));
+        const quat = new THREE.Quaternion().setFromEuler(euler);
+        const scale = new THREE.Vector3(...(insertEntity.geometry.scale || [1, 1, 1]));
+        
+        const mat = new THREE.Matrix4().compose(pos, quat, scale);
+        const basePt = block.basePoint || [0,0,0];
+        const baseOffset = new THREE.Matrix4().makeTranslation(-basePt[0], -basePt[1], -basePt[2]);
+        mat.multiply(baseOffset);
+        
+        transform.multiply(mat);
+        currentEntities = block.entities;
+      }
+    }
+    
+    const targetEntity = currentEntities.find(e => e.id === ref.entityId) as any;
+    if (!targetEntity || !targetEntity.geometry) return null;
+    
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    const expand = (x: number, y: number) => {
+      const v = new THREE.Vector3(x, y, 0).applyMatrix4(transform);
+      minX = Math.min(minX, v.x);
+      minY = Math.min(minY, v.y);
+      maxX = Math.max(maxX, v.x);
+      maxY = Math.max(maxY, v.y);
+    };
+    
+    if (targetEntity.type === 'LINE') {
+      expand(targetEntity.geometry.start[0], targetEntity.geometry.start[1]);
+      expand(targetEntity.geometry.end[0], targetEntity.geometry.end[1]);
+    } else if (targetEntity.type === 'LWPOLYLINE' || targetEntity.type === 'SOLID') {
+      const verts = targetEntity.geometry.vertices;
+      if (verts) verts.forEach((v: any) => expand(v[0], v[1]));
+    } else if (targetEntity.type === 'CIRCLE' || targetEntity.type === 'ARC') {
+      const cx = targetEntity.geometry.center[0];
+      const cy = targetEntity.geometry.center[1];
+      const r = targetEntity.geometry.radius;
+      expand(cx - r, cy - r);
+      expand(cx + r, cy + r);
+    } else if (targetEntity.type === 'ELLIPSE') {
+      const cx = targetEntity.geometry.center[0];
+      const cy = targetEntity.geometry.center[1];
+      const mx = targetEntity.geometry.majorAxis[0];
+      const my = targetEntity.geometry.majorAxis[1];
+      const len = Math.hypot(mx, my);
+      expand(cx - len, cy - len);
+      expand(cx + len, cy + len);
+    } else if (targetEntity.type === 'TEXT' || targetEntity.type === 'MTEXT' || targetEntity.type === 'POINT') {
+      const loc = targetEntity.geometry.location;
+      if (loc) expand(loc[0], loc[1]);
+    } else if (targetEntity.geometry.boundingBox) {
+      const bb = targetEntity.geometry.boundingBox;
+      expand(bb.min[0], bb.min[1]);
+      expand(bb.max[0], bb.max[1]);
+    } else if (targetEntity.geometry.center) {
+      expand(targetEntity.geometry.center[0], targetEntity.geometry.center[1]);
+    } else {
+      return null;
+    }
+    
+    if (minX === Infinity) return null;
+    return { minX, minY, maxX, maxY };
+  }
+
+  public focusOnBounds(bounds: {minX: number, minY: number, maxX: number, maxY: number}) {
+    const width = bounds.maxX - bounds.minX;
+    const height = bounds.maxY - bounds.minY;
+    
+    const minSize = 1e-3;
+    const finalWidth = Math.max(width, minSize);
+    const finalHeight = Math.max(height, minSize);
+    
+    const cx = bounds.minX + width / 2;
+    const cy = bounds.minY + height / 2;
+    
+    this.camera.position.set(cx, cy, 10);
+    this.camera.lookAt(cx, cy, 0);
+    this.camera.zoom = 1;
+
+    const aspect = this.container.clientWidth / this.container.clientHeight;
+    
+    let targetHeight = finalHeight;
+    let targetWidth = finalWidth;
+
+    if (targetWidth / targetHeight > aspect) {
+      targetHeight = targetWidth / aspect;
+    } else {
+      targetWidth = targetHeight * aspect;
+    }
+
+    this.camera.left = -targetWidth / 2;
+    this.camera.right = targetWidth / 2;
+    this.camera.top = targetHeight / 2;
+    this.camera.bottom = -targetHeight / 2;
+    this.camera.updateProjectionMatrix();
+
+    this.baseUnitsPerPixel = targetHeight / this.container.clientHeight;
+    
+    if (this.onNavigationChanged) {
+      const state = this.getNavigationState();
+      if (state) this.onNavigationChanged(state);
+    }
+    
+    this.markDirty();
+  }
+
+  public setCurrentComparisonChange(ref?: import('../../comparison/types/comparison-types').ComparisonEntityReference) {
+    this.currentChangeFocusGroup.clear();
+    
+    if (ref) {
+      const bounds = this.getEntityWorldBounds(ref);
+      if (bounds) {
+        const w = Math.max(bounds.maxX - bounds.minX, 0.5);
+        const h = Math.max(bounds.maxY - bounds.minY, 0.5);
+        const cx = bounds.minX + (bounds.maxX - bounds.minX) / 2;
+        const cy = bounds.minY + (bounds.maxY - bounds.minY) / 2;
+        
+        const geom = new THREE.EdgesGeometry(new THREE.PlaneGeometry(w * 1.05, h * 1.05));
+        const mat = new THREE.LineBasicMaterial({ color: 0xffff00, depthTest: false });
+        const mesh = new THREE.LineSegments(geom, mat);
+        mesh.position.set(cx, cy, 0);
+        this.currentChangeFocusGroup.add(mesh);
+      }
+    }
     this.markDirty();
   }
 
@@ -1699,6 +1863,11 @@ Batched Hatch Vertices: ${totalHatchVertices}
     this.camera.position.x += dx;
     this.camera.position.y += dy;
     this.markDirty();
+
+    if (this.onNavigationChanged) {
+      const state = this.getNavigationState();
+      if (state) this.onNavigationChanged(state);
+    }
   };
 
   private handlePointerDown = (e: PointerEvent) => {
@@ -1740,6 +1909,11 @@ Batched Hatch Vertices: ${totalHatchVertices}
       this.cursorOverlayGroup.position.copy(worldPoint);
 
       this.markDirty();
+
+      if (this.onNavigationChanged) {
+        const state = this.getNavigationState();
+        if (state) this.onNavigationChanged(state);
+      }
     } else {
       // Immediate OSNAP evaluation (no debounce)
       if (this.currentSnapConfig.enabled) {
@@ -2432,6 +2606,151 @@ Batched Hatch Vertices: ${totalHatchVertices}
     this.markDirty();
   }
 
+  public getNavigationState(): CadNavigationState | null {
+    if (!this.camera) return null;
+    return {
+      cameraX: this.camera.position.x,
+      cameraY: this.camera.position.y,
+      unitsPerPixel: this.baseUnitsPerPixel > 0 ? this.baseUnitsPerPixel / this.camera.zoom : 1,
+      space: this.activeSpace,
+      layoutName: this.activeLayoutName || undefined
+    };
+  }
+
+  public setNavigationState(state: CadNavigationState) {
+    if (!this.camera || !state || state.unitsPerPixel <= 0) return;
+    
+    if (this.activeSpace !== state.space || this.activeLayoutName !== state.layoutName) {
+      return;
+    }
+    
+    this.camera.position.x = state.cameraX;
+    this.camera.position.y = state.cameraY;
+    
+    if (this.baseUnitsPerPixel > 0) {
+      this.camera.zoom = this.baseUnitsPerPixel / state.unitsPerPixel;
+      this.camera.updateProjectionMatrix();
+    }
+    
+    this.markDirty();
+  }
+
+  public clearComparisonHighlights() {
+    while (this.comparisonOverlayGroup.children.length > 0) {
+      const child = this.comparisonOverlayGroup.children[0];
+      this.comparisonOverlayGroup.remove(child);
+      if ((child as THREE.Mesh).geometry) ((child as THREE.Mesh).geometry as THREE.BufferGeometry).dispose();
+      if ((child as THREE.Mesh).material) {
+        const mat = (child as THREE.Mesh).material;
+        if (Array.isArray(mat)) mat.forEach(m => m.dispose());
+        else mat.dispose();
+      }
+    }
+    this.markDirty();
+  }
+
+  public setComparisonHighlights(changes: ComparisonChange[], side: 'OLD' | 'NEW') {
+    this.clearComparisonHighlights();
+    
+    if (!changes || changes.length === 0 || !this.activeDoc) return;
+
+    const activeChanges = changes.filter(c => {
+      if (side === 'OLD') return c.changeType === 'REMOVED' || c.changeType === 'MODIFIED';
+      if (side === 'NEW') return c.changeType === 'ADDED' || c.changeType === 'MODIFIED';
+      return false;
+    });
+
+    if (activeChanges.length === 0) return;
+
+    const highlightColor = side === 'OLD' ? 0xff0000 : 0x00ff00;
+
+    const ctx = {
+      lines: [] as number[],
+      colors: [] as number[],
+      instanceIds: [] as number[],
+      hatchPositions: [] as number[],
+      hatchIndices: [] as number[],
+      hatchColors: [] as number[],
+      hatchInstanceIds: [] as number[],
+      hatchCurrentIndexOffset: 0,
+      textMeshes: [] as THREE.Mesh[],
+      arrowheadMeshes: [] as THREE.Mesh[],
+      stats: { arcs: 0, ellipses: 0, points: 0, dimensions: 0, leaders: 0, mleaders: 0, arcDimensions: 0, mtexts: 0 }
+    };
+    const getContext = () => (ctx as any);
+
+    for (const change of activeChanges) {
+      const ref = side === 'OLD' ? change.oldEntity : change.newEntity;
+      if (!ref) continue;
+      
+      const entity = this.findEntityById(ref.entityId);
+      if (!entity) continue;
+      
+      const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined);
+      
+      this.processEntities([entity], parentMatrix, this.activeDoc, 0, getContext, ctx.stats as any, {}, [], ref.space, (ref as any).viewportId);
+    }
+
+    if (ctx.lines.length > 0) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.lines, 3));
+      const mat = new THREE.LineBasicMaterial({
+        color: highlightColor,
+        depthTest: false,
+        depthWrite: false
+      });
+      const lines = new THREE.LineSegments(geom, mat);
+      lines.renderOrder = 997;
+      this.comparisonOverlayGroup.add(lines);
+    }
+
+    if (ctx.hatchPositions.length > 0) {
+      const geom = new THREE.BufferGeometry();
+      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.hatchPositions, 3));
+      geom.setIndex(ctx.hatchIndices);
+      const mat = new THREE.MeshBasicMaterial({
+        color: highlightColor,
+        side: THREE.DoubleSide,
+        depthTest: false,
+        depthWrite: false,
+        transparent: true,
+        opacity: 0.7
+      });
+      const mesh = new THREE.Mesh(geom, mat);
+      mesh.renderOrder = 997;
+      this.comparisonOverlayGroup.add(mesh);
+    }
+
+    for (const mesh of ctx.textMeshes) {
+        mesh.geometry.computeBoundingBox();
+        const bbox = mesh.geometry.boundingBox;
+        if (bbox) {
+            const width = bbox.max.x - bbox.min.x;
+            const height = bbox.max.y - bbox.min.y;
+            const center = new THREE.Vector3();
+            bbox.getCenter(center);
+            
+            const planeGeom = new THREE.PlaneGeometry(width, height);
+            const mat = new THREE.MeshBasicMaterial({
+                color: highlightColor,
+                side: THREE.DoubleSide,
+                depthTest: false,
+                depthWrite: false,
+                transparent: true,
+                opacity: 0.7
+            });
+            const plane = new THREE.Mesh(planeGeom, mat);
+            plane.position.copy(center);
+            plane.quaternion.copy(mesh.quaternion);
+            plane.renderOrder = 997;
+            this.comparisonOverlayGroup.add(plane);
+        }
+    }
+
+    this.markDirty();
+  }
+
+
   private animate = () => {
     if (this.isDisposed) return;
     this.animationFrameId = requestAnimationFrame(this.animate);
@@ -2598,11 +2917,12 @@ Batched Hatch Vertices: ${totalHatchVertices}
     
     // Preserve special nodes: camera, gridHelper, selectionOverlayGroup, hoverOverlayGroup, snapIndicatorGroup
     const preserveNodes = new Set<THREE.Object3D>([
-        this.camera, 
-        this.selectionOverlayGroup,
-        this.hoverOverlayGroup,
-        this.snapIndicatorGroup,
-        this.cursorOverlayGroup
+        this.camera,
+      this.selectionOverlayGroup,
+      this.hoverOverlayGroup,
+      this.comparisonOverlayGroup,
+      this.snapIndicatorGroup,
+      this.cursorOverlayGroup,
     ]);
     if (this.gridHelper) {
         preserveNodes.add(this.gridHelper);

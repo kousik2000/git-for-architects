@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { CadRenderer } from '../../cad/renderer/CadRenderer';
 import type { ArcosCadDocument } from '../../types/cad-json';
+import type { ComparisonChange } from '../../comparison/types/comparison-types';
+import type { ComparisonNavigationController } from '../../comparison/navigation/ComparisonNavigationController';
 import { hasPermission } from '../../permissions/permission-service';
 import { PERMISSIONS } from '../../permissions/permissions';
 import { LayerPanel } from '../layer-panel/LayerPanel';
@@ -18,9 +20,13 @@ import './CadViewer.css';
 interface CadViewerProps {
   document: ArcosCadDocument | null;
   onClose?: () => void;
+  minimalUI?: boolean;
+  comparisonChanges?: ComparisonChange[];
+  comparisonSide?: 'OLD' | 'NEW';
+  navigationController?: ComparisonNavigationController;
 }
 
-export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
+export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimalUI = false, comparisonChanges, comparisonSide, navigationController }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CadRenderer | null>(null);
   const documentRef = useRef<ArcosCadDocument | null>(null);
@@ -49,8 +55,18 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
   // Initialize renderer on mount
   useEffect(() => {
     if (containerRef.current && !rendererRef.current) {
-      rendererRef.current = new CadRenderer(containerRef.current);
-      rendererRef.current.onEntitySelected = (reference) => {
+      const renderer = new CadRenderer(containerRef.current);
+      rendererRef.current = renderer;
+
+      if (navigationController && comparisonSide) {
+        if (comparisonSide === 'OLD') {
+          navigationController.registerOldViewer(renderer);
+        } else if (comparisonSide === 'NEW') {
+          navigationController.registerNewViewer(renderer);
+        }
+      }
+
+      renderer.onEntitySelected = (reference) => {
         if (hasPermission(PERMISSIONS.CAD_ENTITY_SELECT)) {
           if (reference) {
             console.log(`[CadViewer] Entity Selected:`, reference);
@@ -87,12 +103,19 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
 
     return () => {
       // Cleanup on unmount
+      if (navigationController && comparisonSide) {
+        if (comparisonSide === 'OLD') {
+          navigationController.unregisterOldViewer();
+        } else if (comparisonSide === 'NEW') {
+          navigationController.unregisterNewViewer();
+        }
+      }
       if (rendererRef.current) {
         rendererRef.current.dispose();
         rendererRef.current = null;
       }
     };
-  }, []);
+  }, [navigationController, comparisonSide]);
 
   // Load document when it changes
   useEffect(() => {
@@ -113,6 +136,16 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
       setHoverData(null);
     }
   }, [document]);
+
+  useEffect(() => {
+    if (rendererRef.current) {
+      if (comparisonChanges && comparisonSide) {
+        rendererRef.current.setComparisonHighlights(comparisonChanges, comparisonSide);
+      } else {
+        rendererRef.current.clearComparisonHighlights();
+      }
+    }
+  }, [comparisonChanges, comparisonSide, document]);
 
   useEffect(() => {
     if (rendererRef.current) {
@@ -223,7 +256,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
         <div className="cad-viewer-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           
           {/* Stats toggle — replaces the inline statistics string */}
-          {canViewStats && document && (
+          {!minimalUI && canViewStats && document && (
             <button
               id="cad-stats-btn"
               className={`cad-ctrl-btn${showStatsPanel ? ' cad-ctrl-btn--active' : ''}`}
@@ -251,7 +284,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
           )}
 
           {/* Layers toggle */}
-          {canViewLayers && (
+          {!minimalUI && canViewLayers && (
             <button
               id="cad-layers-btn"
               className={`cad-ctrl-btn${showLayerPanel ? ' cad-ctrl-btn--active' : ''}`}
@@ -263,7 +296,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
           )}
 
           {/* Measure Button */}
-          {rendererRef.current?.measurementController && cadConfig.snapping.enabled && (
+          {!minimalUI && rendererRef.current?.measurementController && cadConfig.snapping.enabled && (
             <div style={{ display: 'flex', gap: '2px' }}>
               <button
                 className={`cad-ctrl-btn${rendererRef.current.measurementController.isActive() ? ' cad-ctrl-btn--active' : ''}`}
@@ -309,7 +342,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
           )}
 
           {/* Settings Menu */}
-          <CadSettingsMenu config={cadConfig} onConfigChange={setCadConfig} />
+          {!minimalUI && <CadSettingsMenu config={cadConfig} onConfigChange={setCadConfig} />}
         </div>
       </div>
 
@@ -318,7 +351,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
         {/* WebGL Canvas is injected here by CadRenderer */}
 
         {/* Statistics popup — LEFT side */}
-        {showStatsPanel && document && canViewStats && (
+        {!minimalUI && showStatsPanel && document && canViewStats && (
           <StatisticsPanel
             document={document}
             onClose={() => setShowStatsPanel(false)}
@@ -326,7 +359,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
         )}
 
         {/* Layers popup — RIGHT side */}
-        {showLayerPanel && document && canViewLayers && (
+        {!minimalUI && showLayerPanel && document && canViewLayers && (
           <LayerPanel
             layers={document.layers}
             visibilityState={layerVisibility}
@@ -337,7 +370,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
         )}
 
         {/* Entity Inspection panel — RIGHT side, overlapping slightly with Layers if both open */}
-        {inspectionData && canInspect && (
+        {!minimalUI && inspectionData && canInspect && (
           <EntityInspectionPanel
             data={inspectionData}
             onClose={handleCloseInspection}
@@ -345,7 +378,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
         )}
         
         {/* Hover Tooltip */}
-        {hoverData && (
+        {!minimalUI && hoverData && (
           <HoverTooltip
             inspectionData={hoverData}
             x={pointerPos.x}
@@ -354,7 +387,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose }) => {
         )}
         
         {/* Measurement Overlay */}
-        {measControllerReady && rendererRef.current && (
+        {!minimalUI && measControllerReady && rendererRef.current && (
           <MeasurementOverlay 
             controller={rendererRef.current.measurementController}
             renderer={rendererRef.current}

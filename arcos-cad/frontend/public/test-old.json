@@ -1,0 +1,32 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "units": "Inches",
+    "extents": {
+      "min": [0, 0, 0],
+      "max": [10, 5, 0]
+    }
+  },
+  "layers": [
+    { "name": "0", "visible": true, "frozen": false }
+  ],
+  "model": [
+    {
+      "id": "A1",
+      "type": "LINE",
+      "layer": "0",
+      "color": 256,
+      "geometry": { "x1": 0, "y1": 0, "z1": 0, "x2": 10, "y2": 0, "z2": 0 }
+    },
+    {
+      "id": "B1",
+      "type": "LINE",
+      "layer": "0",
+      "color": 256,
+      "geometry": { "x1": 0, "y1": 5, "z1": 0, "x2": 10, "y2": 5, "z2": 0 }
+    }
+  ],
+  "paperspace": [],
+  "layouts": {},
+  "blocks": {}
+}

@@ -6,10 +6,13 @@ import { ConversionStatus } from './components/ConversionStatus';
 import { DownloadResult } from './components/DownloadResult';
 import { ConfigModal } from './components/ConfigModal';
 import { CadViewer } from './components/cad-viewer/CadViewer';
+import { ComparisonWorkflow } from './components/comparison/ComparisonWorkflow';
 import type { ArcosCadDocument } from './types/cad-json';
+import type { AppMode } from './types/cad';
 import './App.css';
 
 function App() {
+  const [appMode, setAppMode] = useState<AppMode>('SINGLE');
   const [file, setFile] = useState<File | null>(null);
   const [state, setState] = useState<ConversionState>('IDLE');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -105,6 +108,28 @@ function App() {
 
   const isProcessing = state === 'UPLOADING' || state === 'CONVERTING';
 
+  // Compare mode overrides the main view completely
+  if (appMode === 'COMPARE') {
+    return (
+      <div className="app-container">
+        <header className="app-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <h1 className="logo-text">ARCOS CAD</h1>
+            <h2 className="subtitle">Drawing Comparison</h2>
+          </div>
+          <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+            <button className="btn text-btn" style={{ color: 'white' }} onClick={() => setAppMode('SINGLE')}>
+              Return to Single File View
+            </button>
+          </div>
+        </header>
+        <main className="main-content" style={{ maxWidth: 'none', margin: '2rem' }}>
+          <ComparisonWorkflow onClose={() => setAppMode('SINGLE')} />
+        </main>
+      </div>
+    );
+  }
+
   if (isViewerOpen && cadDoc) {
     return (
       <div style={{ width: '100vw', height: '100vh', position: 'relative' }}>
@@ -116,20 +141,31 @@ function App() {
   return (
     <div className="app-container">
       <header className="app-header">
-        <h1 className="logo-text">ARCOS CAD</h1>
-        <h2 className="subtitle">DWG → DXF Converter & Viewer</h2>
-        <button 
-          className="config-btn" 
-          onClick={() => setIsConfigOpen(true)}
-          aria-label="Configuration"
-          title="Configuration"
-        >
-          <svg className="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="10"></circle>
-            <line x1="2" y1="12" x2="22" y2="12"></line>
-            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
-          </svg>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <h1 className="logo-text">ARCOS CAD</h1>
+          <h2 className="subtitle">DWG → DXF Converter & Viewer</h2>
+        </div>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <button 
+            className="btn primary-btn" 
+            style={{ padding: '0.4rem 1rem', background: '#e67e22' }} 
+            onClick={() => setAppMode('COMPARE')}
+          >
+            Compare Drawings
+          </button>
+          <button 
+            className="config-btn" 
+            onClick={() => setIsConfigOpen(true)}
+            aria-label="Configuration"
+            title="Configuration"
+          >
+            <svg className="globe-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+          </button>
+        </div>
       </header>
 
       <ConfigModal isOpen={isConfigOpen} onClose={() => setIsConfigOpen(false)} />

@@ -60,6 +60,24 @@ export interface CadLwPolylineEntity extends CadEntityBase {
     closed: boolean;
   };
 }
+
+export interface CadCircleEntity extends CadEntityBase {
+  type: 'CIRCLE';
+  geometry: {
+    center: [number, number, number];
+    radius: number;
+  };
+}
+
+export interface CadArcEntity extends CadEntityBase {
+  type: 'ARC';
+  geometry: {
+    center: [number, number, number];
+    radius: number;
+    startAngle: number;
+    endAngle: number;
+  };
+}
 export type CadHatchEdge =
   | { type: 'LineEdge'; start: [number, number]; end: [number, number] }
   | { type: 'ArcEdge'; center: [number, number]; radius: number; startAngle: number; endAngle: number; ccw: boolean }
@@ -135,7 +153,7 @@ export interface CadViewportEntity extends CadEntityBase {
 
 // We map all unsupported/unknown entity types to a generic interface for now
 export interface CadGenericEntity extends CadEntityBase {
-  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'HATCH' | 'TEXT' | 'INSERT' | 'SPLINE' | 'DIMENSION' | 'LEADER' | 'MLEADER' | 'ARC_DIMENSION' | 'VIEWPORT'>;
+  type: Exclude<string, 'LINE' | 'LWPOLYLINE' | 'CIRCLE' | 'ARC' | 'HATCH' | 'TEXT' | 'INSERT' | 'SPLINE' | 'DIMENSION' | 'LEADER' | 'MLEADER' | 'ARC_DIMENSION' | 'VIEWPORT'>;
   geometry: any;
 }
 
@@ -146,7 +164,7 @@ export interface CadDimensionEntity extends CadEntityBase {
   };
 }
 
-export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadSplineEntity | CadDimensionEntity | CadViewportEntity | CadGenericEntity;
+export type CadEntity = CadLineEntity | CadLwPolylineEntity | CadCircleEntity | CadArcEntity | CadHatchEntity | CadTextEntity | CadInsertEntity | CadSplineEntity | CadDimensionEntity | CadViewportEntity | CadGenericEntity;
 
 export interface CadStatistics {
   totalEntities: number;
