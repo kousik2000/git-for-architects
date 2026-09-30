@@ -40,6 +40,9 @@ export class ComparisonNavigationController {
   private handleNavigationChange(source: 'OLD' | 'NEW', state: CadNavigationState) {
     if (this.isSyncing) return;
     
+    if (!isFinite(state.unitsPerPixel) || state.unitsPerPixel <= 0) return;
+    if (!isFinite(state.cameraX) || !isFinite(state.cameraY)) return;
+
     const targetRenderer = source === 'OLD' ? this.newRenderer : this.oldRenderer;
     if (!targetRenderer) return;
 

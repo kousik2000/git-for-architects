@@ -54,17 +54,20 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
 
   // Initialize renderer on mount
   useEffect(() => {
-    if (containerRef.current && !rendererRef.current) {
-      const renderer = new CadRenderer(containerRef.current);
-      rendererRef.current = renderer;
-
-      if (navigationController && comparisonSide) {
-        if (comparisonSide === 'OLD') {
-          navigationController.registerOldViewer(renderer);
-        } else if (comparisonSide === 'NEW') {
-          navigationController.registerNewViewer(renderer);
+      if (containerRef.current && !rendererRef.current) {
+        const renderer = new CadRenderer(containerRef.current);
+        if (comparisonSide) {
+          renderer.comparisonSide = comparisonSide;
         }
-      }
+        rendererRef.current = renderer;
+
+        if (navigationController && comparisonSide) {
+          if (comparisonSide === 'OLD') {
+            navigationController.registerOldViewer(renderer);
+          } else if (comparisonSide === 'NEW') {
+            navigationController.registerNewViewer(renderer);
+          }
+        }
 
       renderer.onEntitySelected = (reference) => {
         if (hasPermission(PERMISSIONS.CAD_ENTITY_SELECT)) {
@@ -120,6 +123,8 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
   // Load document when it changes
   useEffect(() => {
     if (rendererRef.current && document) {
+      if (comparisonSide === 'OLD') (window as any).COMPARISON_TIMING?.mark('T10');
+      if (comparisonSide === 'NEW') (window as any).COMPARISON_TIMING?.mark('T15');
       rendererRef.current.loadDocument(document);
 
       // Initialize layer visibility state from document

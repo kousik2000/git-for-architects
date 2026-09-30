@@ -6,6 +6,7 @@ import { ComparisonViewer } from './ComparisonViewer';
 import type { ComparisonWorkflowState, ComparisonSession } from '../../types/cad';
 import type { ArcosCadDocument } from '../../types/cad-json';
 
+import { TIMING } from '../../comparison/performance/timingLogger';
 export function ComparisonWorkflow({ onClose }: { onClose: () => void }) {
   const [workflowState, setWorkflowState] = useState<ComparisonWorkflowState>('IDLE');
   const [oldFile, setOldFile] = useState<File | null>(null);
@@ -15,6 +16,7 @@ export function ComparisonWorkflow({ onClose }: { onClose: () => void }) {
   const [session, setSession] = useState<ComparisonSession | null>(null);
 
   const handleStartComparison = async () => {
+    TIMING.mark('T0');
     if (!oldFile || !newFile) return;
 
     setWorkflowState('PROCESSING');
@@ -34,10 +36,10 @@ export function ComparisonWorkflow({ onClose }: { onClose: () => void }) {
 
       // We run them concurrently for performance
       const [oldDoc, newDoc] = await Promise.all([
-        processFile(oldFile).catch(err => {
+        processFile(oldFile).then(doc => { TIMING.mark('T1'); return doc; }).catch(err => {
           throw new Error(`Previous/Old Drawing Failed: ${err.message || 'Unknown error'}`);
         }),
-        processFile(newFile).catch(err => {
+        processFile(newFile).then(doc => { TIMING.mark('T2'); return doc; }).catch(err => {
           throw new Error(`Current/New Drawing Failed: ${err.message || 'Unknown error'}`);
         })
       ]);

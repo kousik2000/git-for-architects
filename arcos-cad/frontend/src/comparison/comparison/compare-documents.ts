@@ -3,10 +3,18 @@ import type { ComparisonResult, ComparisonSpaceResult, ComparisonChange } from '
 import { normalizeDocument } from '../normalization/normalize-document';
 import { matchEntities } from '../matching/entity-matcher';
 import { compareEntities, createEntityReference } from './compare-entities';
+import { TIMING } from '../performance/timingLogger';
 
 export function compareCadDocuments(oldDocument: ArcosCadDocument, newDocument: ArcosCadDocument): ComparisonResult {
+  TIMING.mark('T3');
   const oldNorm = normalizeDocument(oldDocument);
+  TIMING.mark('T4');
+  
+  TIMING.mark('T5');
   const newNorm = normalizeDocument(newDocument);
+  TIMING.mark('T6');
+  
+  TIMING.mark('T7');
 
   const spaces = new Set([...Object.keys(oldNorm), ...Object.keys(newNorm)]);
   const spaceResults: ComparisonSpaceResult[] = [];
@@ -94,6 +102,9 @@ export function compareCadDocuments(oldDocument: ArcosCadDocument, newDocument: 
       changes
     });
   }
+
+  TIMING.mark('T8');
+  TIMING.mark('T9');
 
   return {
     summary: overallSummary,

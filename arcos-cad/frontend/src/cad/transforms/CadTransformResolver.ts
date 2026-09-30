@@ -42,10 +42,19 @@ export class CadTransformResolver {
         const geom = insertEntity.geometry;
         const matrix = new THREE.Matrix4();
         matrix.compose(
-          new THREE.Vector3(geom.insertionPoint[0], geom.insertionPoint[1], geom.insertionPoint[2]),
-          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), geom.rotation || 0),
-          new THREE.Vector3(geom.scale[0], geom.scale[1], geom.scale[2])
+          new THREE.Vector3(geom.insertionPoint[0], geom.insertionPoint[1], geom.insertionPoint[2] || 0),
+          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), THREE.MathUtils.degToRad(geom.rotation || 0)),
+          new THREE.Vector3(geom.scale[0], geom.scale[1], geom.scale[2] || 1)
         );
+
+        if (document.blocks && insertEntity.blockName) {
+          const block = document.blocks[insertEntity.blockName];
+          if (block && block.basePoint) {
+            const basePoint = block.basePoint;
+            matrix.multiply(new THREE.Matrix4().makeTranslation(-basePoint[0], -basePoint[1], -(basePoint[2] || 0)));
+          }
+        }
+
         parentMatrix.multiply(matrix);
       }
     }
@@ -59,7 +68,8 @@ export class CadTransformResolver {
    */
   public static resolveTransformWithLookup(
     insertPath: string[],
-    findEntityById: (id: string) => CadEntity | undefined
+    findEntityById: (id: string) => CadEntity | undefined,
+    blocks?: Record<string, any>
   ): THREE.Matrix4 {
     const parentMatrix = new THREE.Matrix4();
     
@@ -73,10 +83,19 @@ export class CadTransformResolver {
         const geom = insertEntity.geometry;
         const matrix = new THREE.Matrix4();
         matrix.compose(
-          new THREE.Vector3(geom.insertionPoint[0], geom.insertionPoint[1], geom.insertionPoint[2]),
-          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), geom.rotation || 0),
-          new THREE.Vector3(geom.scale[0], geom.scale[1], geom.scale[2])
+          new THREE.Vector3(geom.insertionPoint[0], geom.insertionPoint[1], geom.insertionPoint[2] || 0),
+          new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 0, 1), THREE.MathUtils.degToRad(geom.rotation || 0)),
+          new THREE.Vector3(geom.scale[0], geom.scale[1], geom.scale[2] || 1)
         );
+        
+        if (blocks && insertEntity.blockName) {
+          const block = blocks[insertEntity.blockName];
+          if (block && block.basePoint) {
+            const basePoint = block.basePoint;
+            matrix.multiply(new THREE.Matrix4().makeTranslation(-basePoint[0], -basePoint[1], -(basePoint[2] || 0)));
+          }
+        }
+        
         parentMatrix.multiply(matrix);
       }
     }

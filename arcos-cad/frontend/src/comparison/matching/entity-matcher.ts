@@ -96,12 +96,60 @@ export function matchEntities(
     }
 
     // ---------------------------------------------------------
-    // STAGE 2: Context-Aware Geometry Matching
+    // STAGE 2: Context-Aware Geometry Matching with Spatial Grid
     // ---------------------------------------------------------
+    // A simple grid size of 100 units should significantly reduce inner loop comparisons
+    const GRID_SIZE = 100;
+    const getGridKey = (e: NormalizedCadEntity) => {
+      if (!e.normalizedGeometry || !e.normalizedGeometry.bounds) return 'nogrid';
+      const b = e.normalizedGeometry.bounds;
+      return `${Math.floor(b.min[0] / GRID_SIZE)},${Math.floor(b.min[1] / GRID_SIZE)}`;
+    };
+
+    const oldByContextAndGrid = new Map<string, NormalizedCadEntity[]>();
+    for (const old of oldPool) {
+      const key = `${getContextKey(old)}|${getGridKey(old)}`;
+      if (!oldByContextAndGrid.has(key)) oldByContextAndGrid.set(key, []);
+      oldByContextAndGrid.get(key)!.push(old);
+    }
+
     for (const newE of Array.from(newPool)) {
-      const key = getContextKey(newE);
-      const candidates = oldByContext.get(key);
-      if (candidates && candidates.length > 0) {
+      const ctxKey = getContextKey(newE);
+      const gridKey = getGridKey(newE);
+      
+      // We check the exact cell and adjacent cells (if on boundary) but for simplicity and since
+      // tolerance is small, checking exact cell is usually enough for identical entities with small drift.
+      // A more robust implementation would check the 9 neighbor cells.
+      const offsets = [[0,0], [0,1], [0,-1], [1,0], [-1,0], [1,1], [1,-1], [-1,1], [-1,-1]];
+      let matched = false;
+
+      if (gridKey === 'nogrid') {
+        const candidates = oldByContext.get(ctxKey);
+        if (candidates && candidates.length > 0) {
+          for (let i = 0; i < candidates.length; i++) {
+            const oldE = candidates[i];
+            if (!oldPool.has(oldE)) continue;
+            stats.stage2Comparisons++;
+            if (isGeometryEqual(oldE.entityType, oldE.normalizedGeometry, newE.normalizedGeometry)) {
+              pairUp(oldE, newE, 'GEOMETRY_CONTEXT');
+              stats.stage2Matched++;
+              break;
+            }
+          }
+        }
+        continue;
+      }
+
+      const [gxStr, gyStr] = gridKey.split(',');
+      const gx = parseInt(gxStr);
+      const gy = parseInt(gyStr);
+
+      for (const [dx, dy] of offsets) {
+        if (matched) break;
+        const key = `${ctxKey}|${gx + dx},${gy + dy}`;
+        const candidates = oldByContextAndGrid.get(key);
+        if (!candidates || candidates.length === 0) continue;
+
         for (let i = 0; i < candidates.length; i++) {
           const oldE = candidates[i];
           if (!oldPool.has(oldE)) continue;
@@ -110,6 +158,7 @@ export function matchEntities(
           if (isGeometryEqual(oldE.entityType, oldE.normalizedGeometry, newE.normalizedGeometry)) {
             pairUp(oldE, newE, 'GEOMETRY_CONTEXT');
             stats.stage2Matched++;
+            matched = true;
             break;
           }
         }

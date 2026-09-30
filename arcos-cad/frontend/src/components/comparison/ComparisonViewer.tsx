@@ -4,16 +4,39 @@ import { CadViewer } from '../cad-viewer/CadViewer';
 import { ComparisonNavigationController } from '../../comparison/navigation/ComparisonNavigationController';
 import { ChangeList } from './ChangeList';
 
+import { TIMING } from '../../comparison/performance/timingLogger';
+
 export function ComparisonViewer({ session, onClose }: { session: ComparisonSession; onClose: () => void }) {
   const summary = session.comparisonResult.summary;
   
   const allChanges = useMemo(() => {
+    TIMING.mark('T23');
     const changes = session.comparisonResult.spaces.flatMap(s => s.changes);
     const order: Record<string, number> = { MODIFIED: 1, REMOVED: 2, ADDED: 3, UNCHANGED: 4 };
-    return changes.filter(c => c.changeType !== 'UNCHANGED').sort((a, b) => (order[a.changeType] || 9) - (order[b.changeType] || 9));
+    const res = changes.filter(c => c.changeType !== 'UNCHANGED').sort((a, b) => (order[a.changeType] || 9) - (order[b.changeType] || 9));
+    TIMING.mark('T24');
+    return res;
   }, [session.comparisonResult]);
 
+  React.useEffect(() => {
+    setTimeout(() => {
+      TIMING.mark('T25');
+      TIMING.report();
+    }, 500); // Allow time for child renders
+  }, []);
+
   const [selectedChangeIndex, setSelectedChangeIndex] = useState<number | null>(null);
+  const [fullscreenPane, setFullscreenPane] = useState<'none' | 'old' | 'new'>('none');
+
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setFullscreenPane('none');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const navigationControllerRef = React.useRef(new ComparisonNavigationController());
 
@@ -80,10 +103,26 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
         {/* CAD VIEWERS (Left) */}
         <div style={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0 }}>
           {/* OLD PANE */}
-          <div style={{ flex: 1, width: '50%', minWidth: 0, borderRight: '2px solid #34495e', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-            <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Previous / Old</span>
-              <span style={{ color: '#7f8c8d', fontSize: '0.9rem' }}>{session.oldFileName}</span>
+          <div style={{ 
+            flex: 1, 
+            width: fullscreenPane === 'old' ? '100%' : '50%', 
+            minWidth: 0, 
+            borderRight: fullscreenPane === 'old' ? 'none' : '2px solid #34495e', 
+            display: fullscreenPane === 'new' ? 'none' : 'flex', 
+            flexDirection: 'column', 
+            position: 'relative' 
+          }}>
+            <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span>Previous / Old</span>
+                <span style={{ color: '#7f8c8d', fontSize: '0.9rem', marginLeft: '0.5rem' }}>{session.oldFileName}</span>
+              </div>
+              <button 
+                onClick={() => setFullscreenPane(fullscreenPane === 'old' ? 'none' : 'old')}
+                style={{ background: 'white', border: '1px solid #bdc3c7', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                {fullscreenPane === 'old' ? 'Exit Full View' : 'Full View'}
+              </button>
             </div>
             <div style={{ flex: 1, position: 'relative' }}>
               {/* The underlying CadViewer handles its own full size relative to its parent container. We pass a no-op onClose because the header handles it. */}
@@ -98,10 +137,25 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
           </div>
 
           {/* NEW PANE */}
-          <div style={{ flex: 1, width: '50%', minWidth: 0, display: 'flex', flexDirection: 'column', position: 'relative' }}>
-            <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between' }}>
-              <span>Current / New</span>
-              <span style={{ color: '#7f8c8d', fontSize: '0.9rem' }}>{session.newFileName}</span>
+          <div style={{ 
+            flex: 1, 
+            width: fullscreenPane === 'new' ? '100%' : '50%', 
+            minWidth: 0, 
+            display: fullscreenPane === 'old' ? 'none' : 'flex', 
+            flexDirection: 'column', 
+            position: 'relative' 
+          }}>
+            <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div>
+                <span>Current / New</span>
+                <span style={{ color: '#7f8c8d', fontSize: '0.9rem', marginLeft: '0.5rem' }}>{session.newFileName}</span>
+              </div>
+              <button 
+                onClick={() => setFullscreenPane(fullscreenPane === 'new' ? 'none' : 'new')}
+                style={{ background: 'white', border: '1px solid #bdc3c7', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+              >
+                {fullscreenPane === 'new' ? 'Exit Full View' : 'Full View'}
+              </button>
             </div>
             <div style={{ flex: 1, position: 'relative' }}>
               <CadViewer 
@@ -116,7 +170,13 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
         </div>
 
         {/* CHANGE LIST (Right) */}
-        <div style={{ width: '300px', flexShrink: 0, borderLeft: '2px solid #34495e', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ 
+          width: '300px', 
+          flexShrink: 0, 
+          borderLeft: '2px solid #34495e', 
+          display: fullscreenPane !== 'none' ? 'none' : 'flex', 
+          flexDirection: 'column' 
+        }}>
           <ChangeList 
             changes={allChanges} 
             selectedIndex={selectedChangeIndex} 

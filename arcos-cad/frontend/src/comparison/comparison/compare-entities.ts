@@ -31,7 +31,9 @@ export function compareEntities(
   // strictly enforces they are in the same context.
   const contextChanged = false;
 
-  const isModified = geometryChanged || layerChanged || styleChanged;
+  // Phase 5.20.7.1 - A layer is NOT a comparison change. 
+  // Do NOT mark as modified if only the layer changed.
+  const isModified = geometryChanged || styleChanged;
 
   const details: ComparisonChangeDetails = {
     geometryChanged,

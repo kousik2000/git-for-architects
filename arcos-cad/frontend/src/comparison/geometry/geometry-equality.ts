@@ -24,6 +24,14 @@ export function isAngleEqual(a1: number, a2: number, tol = COMPARISON_TOLERANCE.
 export function isGeometryEqual(entityType: string, g1: any, g2: any): boolean {
   if (!g1 || !g2) return false;
 
+  // Simple bounds fast reject
+  if (g1.bounds && g2.bounds) {
+    if (Math.abs(g1.bounds.min[0] - g2.bounds.min[0]) > COMPARISON_TOLERANCE.geometry) return false;
+    if (Math.abs(g1.bounds.max[0] - g2.bounds.max[0]) > COMPARISON_TOLERANCE.geometry) return false;
+    if (Math.abs(g1.bounds.min[1] - g2.bounds.min[1]) > COMPARISON_TOLERANCE.geometry) return false;
+    if (Math.abs(g1.bounds.max[1] - g2.bounds.max[1]) > COMPARISON_TOLERANCE.geometry) return false;
+  }
+
   switch (entityType) {
     case 'LINE':
       return isPointEqual(g1.start, g2.start) && isPointEqual(g1.end, g2.end);

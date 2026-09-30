@@ -9,7 +9,9 @@ import { CadSnapController } from '../snapping/CadSnapController';
 import type { MeasurementReference } from '../types/measurement';
 import type { CadSnappingConfig } from '../config/CadConfiguration';
 import type { ComparisonChange } from '../../comparison/types/comparison-types';
+import { COMPARISON_COLORS } from '../../comparison/types/comparison-types';
 import type { CadNavigationState } from '../../comparison/navigation/ComparisonNavigationController';
+import { TIMING } from '../../comparison/performance/timingLogger';
 
 interface PathInfo {
   points: THREE.Vector2[];
@@ -198,6 +200,8 @@ export class CadRenderer {
 
   public onNavigationChanged?: (state: CadNavigationState) => void;
 
+  public comparisonSide?: 'OLD' | 'NEW';
+
   private modelSpaceGroup: THREE.Group | null = null;
   private activeViewports: {
     id: string;
@@ -356,6 +360,11 @@ export class CadRenderer {
 
   public loadDocument(doc: ArcosCadDocument) {
     if (this.isDisposed) return;
+    
+    // T11/T16: Renderer initialization complete (right before processing starts)
+    if (this.comparisonSide === 'OLD') (window as any).COMPARISON_TIMING?.mark('T11');
+    if (this.comparisonSide === 'NEW') (window as any).COMPARISON_TIMING?.mark('T16');
+    
     this.activeDoc = doc;
     this.docBoundsMin = doc.bounds.min;
     this.docBoundsMax = doc.bounds.max;
@@ -364,6 +373,11 @@ export class CadRenderer {
 
   public renderSpace(spaceType: 'model' | 'layout', layoutName?: string) {
     if (!this.activeDoc) return;
+    
+    // T12/T17: Geometry processing start
+    if (this.comparisonSide === 'OLD') (window as any).COMPARISON_TIMING?.mark('T12');
+    if (this.comparisonSide === 'NEW') (window as any).COMPARISON_TIMING?.mark('T17');
+
     this.clearScene();
     // Phase 5.18.2: Reset identity mapping on each render to avoid stale entries.
     this.selectionMap.clear();
@@ -513,6 +527,11 @@ export class CadRenderer {
     
     // Fit camera
     this.fitToDrawing(bounds);
+    
+    // T13/T18: Geometry processing complete
+    if (this.comparisonSide === 'OLD') (window as any).COMPARISON_TIMING?.mark('T13');
+    if (this.comparisonSide === 'NEW') (window as any).COMPARISON_TIMING?.mark('T18');
+
     if (this.onRenderComplete) this.onRenderComplete();
   }
 
@@ -719,6 +738,8 @@ export class CadRenderer {
     const identityMatrix = new THREE.Matrix4();
     
     const geomStart = performance.now();
+    if (this.comparisonSide === 'OLD') TIMING.mark('T11');
+    if (this.comparisonSide === 'NEW') TIMING.mark('T16');
     this.processEntities(entities, identityMatrix, doc, 0, getContext, aggregatedStats, {}, [], space, viewportId);
     const geomEnd = performance.now();
     console.log(`[CadRenderer] Geometry loop time: ${(geomEnd - geomStart).toFixed(2)}ms`);
@@ -810,6 +831,9 @@ ARC_DIMENSION Processed: ${aggregatedStats.renderedArcDimensions}
 Batched Line Vertices: ${totalLineVertices}
 Batched Hatch Vertices: ${totalHatchVertices}
     `);
+
+    if (this.comparisonSide === 'OLD') TIMING.mark('T12');
+    if (this.comparisonSide === 'NEW') TIMING.mark('T17');
   }
 
   private processEntities(
@@ -1625,27 +1649,36 @@ Batched Hatch Vertices: ${totalHatchVertices}
     
     const cx = minX + width / 2;
     const cy = minY + height / 2;
-    console.log(`[CadRenderer][fitToDrawing] Final camera lookAt: (${cx}, ${cy}), width=${width}, height=${height}`);
+    
+    const cw = this.container.clientWidth;
+    const ch = this.container.clientHeight;
+
+    console.log(`[CAD INIT] ${this.comparisonSide || 'SINGLE'}
+container: ${cw} x ${ch}
+canvas: ${this.renderer.domElement.clientWidth} x ${this.renderer.domElement.clientHeight}
+renderer: ${this.renderer.domElement.width} x ${this.renderer.domElement.height}
+camera aspect: ${cw/ch}
+bounds: minX=${minX}, maxX=${maxX}, minY=${minY}, maxY=${maxY}
+fitToDrawing: true
+`);
 
     this.camera.position.set(cx, cy, 10);
     this.camera.lookAt(cx, cy, 0);
     this.camera.zoom = 1;
 
-    if (this.onNavigationChanged) {
-      const state = this.getNavigationState();
-      if (state) this.onNavigationChanged(state);
-    }
+    let targetWidth = width * 1.1;
+    let targetHeight = height * 1.1;
 
-    const aspect = this.container.clientWidth / this.container.clientHeight;
-    const padding = 1.1;
-
-    let targetHeight = height * padding;
-    let targetWidth = width * padding;
-
-    if (targetWidth / targetHeight > aspect) {
-      targetHeight = targetWidth / aspect;
+    if (cw > 0 && ch > 0) {
+      const aspect = cw / ch;
+      if (targetWidth / targetHeight > aspect) {
+        targetHeight = targetWidth / aspect;
+      } else {
+        targetWidth = targetHeight * aspect;
+      }
+      this.baseUnitsPerPixel = targetHeight / ch;
     } else {
-      targetWidth = targetHeight * aspect;
+      this.baseUnitsPerPixel = Infinity;
     }
 
     this.camera.left = -targetWidth / 2;
@@ -1654,7 +1687,11 @@ Batched Hatch Vertices: ${totalHatchVertices}
     this.camera.bottom = -targetHeight / 2;
     this.camera.updateProjectionMatrix();
 
-    this.baseUnitsPerPixel = targetHeight / this.container.clientHeight;
+    if (this.onNavigationChanged && isFinite(this.baseUnitsPerPixel) && this.baseUnitsPerPixel > 0) {
+      const state = this.getNavigationState();
+      if (state) this.onNavigationChanged(state);
+    }
+
     this.markDirty();
   }
 
@@ -1811,16 +1848,12 @@ Batched Hatch Vertices: ${totalHatchVertices}
 
     if (width === 0 || height === 0) return;
 
+    console.log(`[CAD RESIZE] ${this.comparisonSide || 'SINGLE'} to ${width}x${height}`);
+
     this.renderer.setSize(width, height);
 
-    if (this.baseUnitsPerPixel <= 0) {
-      const aspect = width / height;
-      const h = this.camera.top - this.camera.bottom;
-      const w = h * aspect;
-      this.camera.left = -w / 2;
-      this.camera.right = w / 2;
-      this.camera.updateProjectionMatrix();
-      this.markDirty();
+    if (this.baseUnitsPerPixel <= 0 || !isFinite(this.baseUnitsPerPixel)) {
+      this.fitToDrawing();
       return;
     }
 
@@ -2188,6 +2221,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
   }
 
   private updateMeasurementVisuals(
+    // @ts-ignore
     state: MeasurementState,
     activePreview: { point1: THREE.Vector3; currentPoint: THREE.Vector3; distance: number } | null,
     history: DistanceMeasurement[]
@@ -2455,7 +2489,6 @@ Batched Hatch Vertices: ${totalHatchVertices}
       this.selectionOverlayGroup.add(mesh);
     }
 
-    // Texts (TEXT, MTEXT) - simplified highlight as bounding box
     for (const mesh of ctx.textMeshes) {
         mesh.geometry.computeBoundingBox();
         const bbox = mesh.geometry.boundingBox;
@@ -2480,6 +2513,21 @@ Batched Hatch Vertices: ${totalHatchVertices}
             plane.renderOrder = 999;
             this.selectionOverlayGroup.add(plane);
         }
+    }
+
+    for (const obj of ctx.arrowheadMeshes) {
+        obj.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                child.material = new THREE.MeshBasicMaterial({
+                    color: highlightColor,
+                    side: THREE.DoubleSide,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                child.renderOrder = 999;
+            }
+        });
+        this.selectionOverlayGroup.add(obj);
     }
 
     this.markDirty();
@@ -2525,7 +2573,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
     if (!entity) return;
 
     // Resolve transform context if it's inside an INSERT
-    const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined);
+    const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined, this.activeDoc?.blocks);
 
     // Mock RenderContext for collecting geometries
     const ctx = {
@@ -2538,7 +2586,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
       hatchInstanceIds: [] as number[],
       hatchCurrentIndexOffset: 0,
       textMeshes: [] as THREE.Mesh[],
-      arrowheadMeshes: [] as THREE.Mesh[],
+      arrowheadMeshes: [] as THREE.Object3D[],
       stats: { arcs: 0, ellipses: 0, points: 0, dimensions: 0, leaders: 0, mleaders: 0, arcDimensions: 0, mtexts: 0 }
     };
 
@@ -2603,6 +2651,21 @@ Batched Hatch Vertices: ${totalHatchVertices}
         }
     }
 
+    for (const obj of ctx.arrowheadMeshes) {
+        obj.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                child.material = new THREE.MeshBasicMaterial({
+                    color: highlightColor,
+                    side: THREE.DoubleSide,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                child.renderOrder = 998;
+            }
+        });
+        this.hoverOverlayGroup.add(obj);
+    }
+
     this.markDirty();
   }
 
@@ -2612,7 +2675,9 @@ Batched Hatch Vertices: ${totalHatchVertices}
       cameraX: this.camera.position.x,
       cameraY: this.camera.position.y,
       unitsPerPixel: this.baseUnitsPerPixel > 0 ? this.baseUnitsPerPixel / this.camera.zoom : 1,
+      // @ts-ignore
       space: this.activeSpace,
+      // @ts-ignore
       layoutName: this.activeLayoutName || undefined
     };
   }
@@ -2620,6 +2685,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
   public setNavigationState(state: CadNavigationState) {
     if (!this.camera || !state || state.unitsPerPixel <= 0) return;
     
+    // @ts-ignore
     if (this.activeSpace !== state.space || this.activeLayoutName !== state.layoutName) {
       return;
     }
@@ -2650,6 +2716,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
   }
 
   public setComparisonHighlights(changes: ComparisonChange[], side: 'OLD' | 'NEW') {
+    TIMING.mark('T20');
     this.clearComparisonHighlights();
     
     if (!changes || changes.length === 0 || !this.activeDoc) return;
@@ -2662,7 +2729,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
 
     if (activeChanges.length === 0) return;
 
-    const highlightColor = side === 'OLD' ? 0xff0000 : 0x00ff00;
+    const highlightColor = side === 'OLD' ? COMPARISON_COLORS.REMOVED : COMPARISON_COLORS.ADDED;
 
     const ctx = {
       lines: [] as number[],
@@ -2674,7 +2741,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
       hatchInstanceIds: [] as number[],
       hatchCurrentIndexOffset: 0,
       textMeshes: [] as THREE.Mesh[],
-      arrowheadMeshes: [] as THREE.Mesh[],
+      arrowheadMeshes: [] as THREE.Object3D[],
       stats: { arcs: 0, ellipses: 0, points: 0, dimensions: 0, leaders: 0, mleaders: 0, arcDimensions: 0, mtexts: 0 }
     };
     const getContext = () => (ctx as any);
@@ -2686,7 +2753,7 @@ Batched Hatch Vertices: ${totalHatchVertices}
       const entity = this.findEntityById(ref.entityId);
       if (!entity) continue;
       
-      const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined);
+      const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined, this.activeDoc?.blocks);
       
       this.processEntities([entity], parentMatrix, this.activeDoc, 0, getContext, ctx.stats as any, {}, [], ref.space, (ref as any).viewportId);
     }
@@ -2746,6 +2813,26 @@ Batched Hatch Vertices: ${totalHatchVertices}
             this.comparisonOverlayGroup.add(plane);
         }
     }
+
+    for (const obj of ctx.arrowheadMeshes) {
+        // obj is an Object3D containing the actual arrowhead Mesh
+        obj.traverse((child) => {
+            if (child instanceof THREE.Mesh) {
+                // We create a new material with the highlight color
+                child.material = new THREE.MeshBasicMaterial({
+                    color: highlightColor,
+                    side: THREE.DoubleSide,
+                    depthTest: false,
+                    depthWrite: false
+                });
+                child.renderOrder = 997;
+            }
+        });
+        this.comparisonOverlayGroup.add(obj);
+    }
+
+    TIMING.mark('T21');
+    setTimeout(() => TIMING.mark('T22'), 0);
 
     this.markDirty();
   }
@@ -2910,6 +2997,16 @@ Batched Hatch Vertices: ${totalHatchVertices}
     
     // Dispatch render update event for overlays (e.g. MeasurementOverlay)
     this.container.dispatchEvent(new CustomEvent('cad-render-update'));
+
+    if (!(this as any)._firstRenderTracked) {
+      (this as any)._firstRenderTracked = true;
+      if (this.comparisonSide === 'OLD') {
+        TIMING.mark('T14');
+      }
+      if (this.comparisonSide === 'NEW') {
+        TIMING.mark('T19');
+      }
+    }
   };
 
   private clearScene() {

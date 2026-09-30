@@ -3,6 +3,20 @@ import type { CadEntity } from '../../types/cad-json';
 export type ChangeType = 'ADDED' | 'REMOVED' | 'MODIFIED' | 'UNCHANGED';
 export type MatchMethod = 'EXACT_SIGNATURE' | 'GEOMETRY_CONTEXT' | 'HANDLE' | 'SPATIAL';
 
+export const COMPARISON_COLORS = {
+  ADDED: 0x2ecc71,
+  REMOVED: 0xe74c3c,
+  MODIFIED: 0xf1c40f,
+  UNCHANGED: 0xbdc3c7
+};
+
+export const COMPARISON_COLORS_CSS = {
+  ADDED: '#2ecc71',
+  REMOVED: '#e74c3c',
+  MODIFIED: '#f1c40f',
+  UNCHANGED: '#bdc3c7'
+};
+
 export interface ComparisonEntityReference {
   entityId: string;
   entityType: string;

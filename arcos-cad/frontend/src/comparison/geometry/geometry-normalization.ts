@@ -26,22 +26,41 @@ export function normalizeGeometry(entity: CadEntity): NormalizedGeometry | null 
       
       return {
         start: [...first],
-        end: [...second]
+        end: [...second],
+        bounds: {
+          min: [Math.min(first[0], second[0]), Math.min(first[1], second[1])],
+          max: [Math.max(first[0], second[0]), Math.max(first[1], second[1])]
+        }
       };
     }
     case 'LWPOLYLINE': {
       const g = entity.geometry;
-      // Do not perform cyclic rotation for V1
+      let minX = Infinity, minY = Infinity;
+      let maxX = -Infinity, maxY = -Infinity;
+      if (g.vertices) {
+        for (const v of g.vertices) {
+          if (v[0] < minX) minX = v[0];
+          if (v[0] > maxX) maxX = v[0];
+          if (v[1] < minY) minY = v[1];
+          if (v[1] > maxY) maxY = v[1];
+        }
+      }
       return {
         vertices: g.vertices ? g.vertices.map(v => [...v]) : [],
-        closed: !!g.closed
+        closed: !!g.closed,
+        bounds: { min: [minX, minY], max: [maxX, maxY] }
       };
     }
     case 'CIRCLE': {
       const g = entity.geometry;
+      const r = g.radius || 0;
       return {
         center: g.center ? [...g.center] : [0, 0, 0],
-        radius: g.radius || 0
+        radius: r,
+        bounds: {
+          min: [g.center ? g.center[0] - r : -r, g.center ? g.center[1] - r : -r],
+          max: [g.center ? g.center[0] + r : r, g.center ? g.center[1] + r : r]
+        }
       };
     }
     case 'ARC': {
@@ -70,6 +89,7 @@ export function serializeNormalizedGeometry(geom: NormalizedGeometry | null): st
   if (!geom) return '';
   // Basic serialization for signature, with fixed precision to avoid floating point hash jitter
   return JSON.stringify(geom, (key, value) => {
+    if (key === 'bounds') return undefined; // Exclude bounds from signature
     if (typeof value === 'number') {
       return Number(value.toFixed(4));
     }

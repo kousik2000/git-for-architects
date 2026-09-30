@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import type { ComparisonChange } from '../../comparison/types/comparison-types';
+import { COMPARISON_COLORS_CSS } from '../../comparison/types/comparison-types';
 
 export interface ChangeListProps {
   changes: ComparisonChange[];
@@ -57,10 +58,10 @@ export function ChangeList({ changes, selectedIndex, onSelectChange }: ChangeLis
   const visibleChanges = changes.slice(currentPage * itemsPerPage, (currentPage + 1) * itemsPerPage);
 
   const getChangeColor = (type: string) => {
-    if (type === 'REMOVED') return '#e74c3c';
-    if (type === 'ADDED') return '#2ecc71';
-    if (type === 'MODIFIED') return '#f1c40f';
-    return '#bdc3c7';
+    if (type === 'REMOVED') return COMPARISON_COLORS_CSS.REMOVED;
+    if (type === 'ADDED') return COMPARISON_COLORS_CSS.ADDED;
+    if (type === 'MODIFIED') return COMPARISON_COLORS_CSS.MODIFIED;
+    return COMPARISON_COLORS_CSS.UNCHANGED;
   };
 
   return (
