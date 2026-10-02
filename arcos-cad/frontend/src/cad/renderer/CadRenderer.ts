@@ -2719,7 +2719,12 @@ fitToDrawing: true
     TIMING.mark('T20');
     this.clearComparisonHighlights();
     
-    if (!changes || changes.length === 0 || !this.activeDoc) return;
+    // ZERO-CHANGE FAST PATH
+    if (!changes || changes.length === 0 || !this.activeDoc) {
+      TIMING.mark('T21');
+      setTimeout(() => TIMING.mark('T22'), 0);
+      return;
+    }
 
     const activeChanges = changes.filter(c => {
       if (side === 'OLD') return c.changeType === 'REMOVED' || c.changeType === 'MODIFIED';
@@ -2727,7 +2732,11 @@ fitToDrawing: true
       return false;
     });
 
-    if (activeChanges.length === 0) return;
+    if (activeChanges.length === 0) {
+      TIMING.mark('T21');
+      setTimeout(() => TIMING.mark('T22'), 0);
+      return;
+    }
 
     const highlightColor = side === 'OLD' ? COMPARISON_COLORS.REMOVED : COMPARISON_COLORS.ADDED;
 

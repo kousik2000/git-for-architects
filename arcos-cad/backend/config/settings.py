@@ -35,7 +35,7 @@ SECRET_KEY = 'django-insecure-%7h6fz*4+)7+6ktk%8-7koqungn5l(%t82g(l@j8a)9%w!4rw^
 DEBUG = True
 
 host_ip = os.environ.get('HOST_IP', '192.168.0.100')
-ALLOWED_HOSTS = [host_ip, 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = [host_ip, '192.168.0.109', 'localhost', '127.0.0.1', '192.168.0.109']
 
 
 # Application definition
@@ -141,7 +141,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # In production, set CORS_ALLOWED_ORIGINS in the server environment.
 cors_origins = os.environ.get(
     'CORS_ALLOWED_ORIGINS',
-    'http://localhost:5173,http://localhost:5174,http://192.168.0.100:5173,http://192.168.0.100:5174'
+    'http://localhost:5173,http://localhost:5174,http://192.168.0.100:5173,http://192.168.0.100:5174,http://192.168.0.109:5173'
 )
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in cors_origins.split(',')]
 

@@ -11,12 +11,16 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
   
   const allChanges = useMemo(() => {
     TIMING.mark('T23');
+    if (summary.added === 0 && summary.removed === 0 && summary.modified === 0) {
+      TIMING.mark('T24');
+      return [];
+    }
     const changes = session.comparisonResult.spaces.flatMap(s => s.changes);
     const order: Record<string, number> = { MODIFIED: 1, REMOVED: 2, ADDED: 3, UNCHANGED: 4 };
     const res = changes.filter(c => c.changeType !== 'UNCHANGED').sort((a, b) => (order[a.changeType] || 9) - (order[b.changeType] || 9));
     TIMING.mark('T24');
     return res;
-  }, [session.comparisonResult]);
+  }, [session.comparisonResult, summary]);
 
   React.useEffect(() => {
     setTimeout(() => {
