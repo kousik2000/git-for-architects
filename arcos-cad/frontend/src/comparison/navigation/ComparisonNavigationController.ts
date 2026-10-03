@@ -63,6 +63,53 @@ export class ComparisonNavigationController {
     }
   }
 
+  public getOldRenderer(): CadRenderer | null {
+    return this.oldRenderer;
+  }
+
+  public getNewRenderer(): CadRenderer | null {
+    return this.newRenderer;
+  }
+
+  public fitToCombinedBounds() {
+    if (!this.oldRenderer || !this.newRenderer) return;
+    
+    const oldBounds = this.oldRenderer.getDocumentBounds();
+    const newBounds = this.newRenderer.getDocumentBounds();
+    
+    if (!oldBounds && !newBounds) return;
+    
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    if (oldBounds) {
+      minX = Math.min(minX, oldBounds.minX);
+      minY = Math.min(minY, oldBounds.minY);
+      maxX = Math.max(maxX, oldBounds.maxX);
+      maxY = Math.max(maxY, oldBounds.maxY);
+    }
+    if (newBounds) {
+      minX = Math.min(minX, newBounds.minX);
+      minY = Math.min(minY, newBounds.minY);
+      maxX = Math.max(maxX, newBounds.maxX);
+      maxY = Math.max(maxY, newBounds.maxY);
+    }
+    
+    const combinedBounds = { min: [minX, minY, 0], max: [maxX, maxY, 0] };
+    
+    // Fit old renderer to combined bounds. The navigation change will sync the new renderer.
+    this.oldRenderer.fitToDrawing(combinedBounds);
+    
+    // Explicitly set new renderer to identical state to ensure they match perfectly
+    const oldState = this.oldRenderer.getNavigationState();
+    if (oldState) {
+        this.isSyncing = true;
+        try {
+            this.newRenderer.setNavigationState(oldState);
+        } finally {
+            this.isSyncing = false;
+        }
+    }
+  }
+
   public focusOnChange(change: import('../types/comparison-types').ComparisonChange, oldDoc: any, newDoc: any) {
     if (this.oldRenderer) this.oldRenderer.setCurrentComparisonChange(change.oldEntity);
     if (this.newRenderer) this.newRenderer.setCurrentComparisonChange(change.newEntity);

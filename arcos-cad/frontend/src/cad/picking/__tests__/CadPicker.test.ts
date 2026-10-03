@@ -12,7 +12,7 @@ describe('Measurement & Picking Architecture', () => {
       // Mock entities
       const entities: Record<string, CadEntity> = {
         'A': { id: 'A', type: 'INSERT', layer: '0', style: {} as any, geometry: { insertionPoint: [10, 20, 0], scale: [2, 2, 1], rotation: 0 } as any },
-        'B': { id: 'B', type: 'INSERT', layer: '0', style: {} as any, geometry: { insertionPoint: [5, 5, 0], scale: [1, 1, 1], rotation: Math.PI / 2 } as any }
+        'B': { id: 'B', type: 'INSERT', layer: '0', style: {} as any, geometry: { insertionPoint: [5, 5, 0], scale: [1, 1, 1], rotation: 90 } as any }
       };
 
       const matrix = CadTransformResolver.resolveTransformWithLookup(['A', 'B'], (id) => entities[id]);

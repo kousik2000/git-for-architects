@@ -73,7 +73,7 @@ describe('MeasurementController', () => {
       entityType: 'LINE',
       layer: '0',
       point: { x: 10, y: 10, z: 0 },
-      snapType: 'endpoint',
+      type: 'endpoint',
       insertPath: [],
       space: 'model' as const
     };

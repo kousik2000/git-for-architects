@@ -22,11 +22,14 @@ interface CadViewerProps {
   onClose?: () => void;
   minimalUI?: boolean;
   comparisonChanges?: ComparisonChange[];
+  comparisonRegions?: any[];
   comparisonSide?: 'OLD' | 'NEW';
   navigationController?: ComparisonNavigationController;
+  transparentBackground?: boolean;
+  hideHeader?: boolean;
 }
 
-export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimalUI = false, comparisonChanges, comparisonSide, navigationController }) => {
+export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimalUI = false, comparisonChanges, comparisonRegions, comparisonSide, navigationController, transparentBackground = false, hideHeader = false }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<CadRenderer | null>(null);
   const documentRef = useRef<ArcosCadDocument | null>(null);
@@ -38,6 +41,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
   const [inspectionData, setInspectionData] = useState<EntityInspection | null>(null);
   
   const [hoverData, setHoverData] = useState<EntityInspection | null>(null);
+  const hoverDataRef = useRef<EntityInspection | null>(null);
   const [pointerPos, setPointerPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   
   // Configuration tracking
@@ -68,6 +72,8 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
             navigationController.registerNewViewer(renderer);
           }
         }
+        
+        renderer.setTransparentBackground(transparentBackground);
 
       renderer.onEntitySelected = (reference) => {
         if (hasPermission(PERMISSIONS.CAD_ENTITY_SELECT)) {
@@ -75,9 +81,30 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
             console.log(`[CadViewer] Entity Selected:`, reference);
             if (hasPermission(PERMISSIONS.CAD_ENTITY_INSPECT) && documentRef.current) {
               const data = resolveInspectionData(documentRef.current, reference);
-              setInspectionData(data);
+              if (data) {
+                  if (comparisonChanges) {
+                      const change = comparisonChanges.find(c => 
+                          (comparisonSide === 'OLD' ? c.oldEntity?.entityId : c.newEntity?.entityId) === reference.entityId
+                      );
+                      data.changeStatus = change ? change.changeType : 'UNCHANGED';
+                  }
+                  setInspectionData(data);
+              }
             }
           } else {
+            // Check regions
+            let regionFound = null;
+            if (comparisonRegions && rendererRef.current) {
+                // To get pointer pos for click, we need it. But onEntitySelected doesn't pass pointer event.
+                // However, since hover precedes click, pointerPos is likely fresh! But wait, we can't reliably use pointerPos for a selection without the real event.
+                // But wait! CadViewer pointerdown is handled inside CadRenderer which calls onEntitySelected.
+                // Let's just use the current pointer position if we must, or we can use hoverData if it was a region!
+                if (hoverDataRef.current && hoverDataRef.current.entityType === 'CHANGE_REGION') {
+                    setInspectionData(hoverDataRef.current);
+                    return;
+                }
+            }
+
             console.log(`[CadViewer] Selection Cleared`);
             setInspectionData(null);
           }
@@ -91,13 +118,50 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
         }
         if (reference) {
           const data = resolveInspectionData(documentRef.current, reference);
-          setHoverData(data);
-          const rect = containerRef.current?.getBoundingClientRect();
-          if (rect) {
-            setPointerPos({ x: clientX - rect.left, y: clientY - rect.top });
+          if (data) {
+              if (comparisonChanges) {
+                  const change = comparisonChanges.find(c => 
+                      (comparisonSide === 'OLD' ? c.oldEntity?.entityId : c.newEntity?.entityId) === reference.entityId
+                  );
+                  data.changeStatus = change ? change.changeType : 'UNCHANGED';
+              }
+              setHoverData(data);
+              hoverDataRef.current = data;
+              const rect = containerRef.current?.getBoundingClientRect();
+              if (rect) {
+                setPointerPos({ x: clientX - rect.left, y: clientY - rect.top });
+              }
           }
         } else {
-          setHoverData(null);
+          // Check region hover
+          let regionFound = null;
+          if (comparisonRegions && rendererRef.current) {
+              const wp = rendererRef.current.getWorldPointFromScreen(clientX, clientY);
+              regionFound = comparisonRegions.find(r => 
+                  wp.x >= r.bounds.minX && wp.x <= r.bounds.maxX &&
+                  wp.y >= r.bounds.minY && wp.y <= r.bounds.maxY
+              );
+          }
+
+          if (regionFound) {
+              const data: EntityInspection = {
+                  entityType: 'CHANGE_REGION',
+                  entityId: regionFound.id,
+                  layer: 'Comparison',
+                  space: 'model',
+                  insertPath: [],
+                  changeStatus: 'MODIFIED', // this ensures it shows colored in UI
+              } as any;
+              setHoverData(data);
+              hoverDataRef.current = data;
+              const rect = containerRef.current?.getBoundingClientRect();
+              if (rect) {
+                setPointerPos({ x: clientX - rect.left, y: clientY - rect.top });
+              }
+          } else {
+              setHoverData(null);
+              hoverDataRef.current = null;
+          }
         }
       };
       
@@ -149,14 +213,26 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
       } else {
         rendererRef.current.clearComparisonHighlights();
       }
+      
+      if (comparisonRegions) {
+          rendererRef.current.setComparisonRegions(comparisonRegions);
+      } else {
+          rendererRef.current.setComparisonRegions([]);
+      }
     }
-  }, [comparisonChanges, comparisonSide, document]);
+  }, [comparisonChanges, comparisonRegions, comparisonSide, document]);
 
   useEffect(() => {
     if (rendererRef.current) {
       rendererRef.current.setInteractionConfig(cadConfig.interaction);
     }
   }, [cadConfig.interaction]);
+
+  useEffect(() => {
+    if (rendererRef.current) {
+      rendererRef.current.setTransparentBackground(!!transparentBackground);
+    }
+  }, [transparentBackground]);
 
   useEffect(() => {
     if (rendererRef.current) {
@@ -255,6 +331,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
   return (
     <div className="cad-viewer-container">
       {/* ─── Toolbar ─── */}
+      {!hideHeader && (
       <div className="cad-viewer-toolbar">
         <span className="cad-viewer-brand">ARCOS CAD VIEWER</span>
 
@@ -350,6 +427,7 @@ export const CadViewer: React.FC<CadViewerProps> = ({ document, onClose, minimal
           {!minimalUI && <CadSettingsMenu config={cadConfig} onConfigChange={setCadConfig} />}
         </div>
       </div>
+      )}
 
       {/* ─── Canvas wrapper — popups are children so they are bounded within ─── */}
       <div className="cad-viewer-canvas-wrapper" ref={containerRef}>

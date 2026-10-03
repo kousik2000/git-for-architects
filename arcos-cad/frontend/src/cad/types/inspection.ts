@@ -9,6 +9,7 @@ export interface EntityInspectionCommon {
   color?: string; // 'ByLayer', 'ByBlock', or hex string like '#ff0000'
   linetype?: string;
   lineweight?: string;
+  changeStatus?: 'ADDED' | 'REMOVED' | 'MODIFIED' | 'UNCHANGED';
 }
 
 export interface InspectionLine extends EntityInspectionCommon {

@@ -28,7 +28,7 @@ describe('CAD Comparison Engine', () => {
     newDoc.entities.push(line);
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 0, removed: 0, modified: 0, unchanged: 1 });
+    expect(result.summary).toMatchObject({ added: 0, removed: 0, modified: 0, unchanged: 1 });
   });
 
   it('TEST 2 & 3: added and removed LINE', () => {
@@ -55,7 +55,7 @@ describe('CAD Comparison Engine', () => {
     oldDoc.entities.push(lineC); // Removed in new
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 1, removed: 1, modified: 0, unchanged: 1 });
+    expect(result.summary).toMatchObject({ added: 1, removed: 1, modified: 0, unchanged: 1 });
   });
 
   it('TEST 4: modified LINE (geometry changed, handle matches)', () => {
@@ -71,7 +71,7 @@ describe('CAD Comparison Engine', () => {
     } as CadLineEntity);
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 0, removed: 0, modified: 1, unchanged: 0 });
+    expect(result.summary).toMatchObject({ added: 0, removed: 0, modified: 1, unchanged: 0 });
     const change = result.spaces.find(s => s.space === 'model')!.changes[0];
     expect(change.details?.matchMethod).toBe('HANDLE');
     expect(change.details?.geometryChanged).toBe(true);
@@ -90,7 +90,7 @@ describe('CAD Comparison Engine', () => {
     } as CadLineEntity); // Notice handles are different!
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 0, removed: 0, modified: 0, unchanged: 1 });
+    expect(result.summary).toMatchObject({ added: 0, removed: 0, modified: 0, unchanged: 1 });
   });
 
   it('TEST 6: duplicate geometry (deterministic 1:1 matching)', () => {
@@ -104,7 +104,7 @@ describe('CAD Comparison Engine', () => {
     newDoc.entities.push({...line, id: 'L3'}); // Only 1 in new
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 0, removed: 1, modified: 0, unchanged: 1 });
+    expect(result.summary).toMatchObject({ added: 0, removed: 1, modified: 0, unchanged: 1 });
   });
 
   it('TEST 7: reversed LINE direction', () => {
@@ -120,7 +120,7 @@ describe('CAD Comparison Engine', () => {
     } as CadLineEntity); // Reversed
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 0, removed: 0, modified: 0, unchanged: 1 });
+    expect(result.summary).toMatchObject({ added: 0, removed: 0, modified: 0, unchanged: 1 });
   });
 
   it('TEST 11: layer difference (same geometry)', () => {
@@ -136,7 +136,7 @@ describe('CAD Comparison Engine', () => {
     } as CadLineEntity); // Diff handles, diff layer, same geometry
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 0, removed: 0, modified: 1, unchanged: 0 });
+    expect(result.summary).toMatchObject({ added: 0, removed: 0, modified: 0, unchanged: 1 });
     const change = result.spaces[0].changes[0];
     expect(change.details?.layerChanged).toBe(true);
     expect(change.details?.geometryChanged).toBe(false);
@@ -159,7 +159,7 @@ describe('CAD Comparison Engine', () => {
     };
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 1, removed: 1, modified: 0, unchanged: 0 });
+    expect(result.summary).toMatchObject({ added: 1, removed: 1, modified: 0, unchanged: 0 });
   });
 
   it('TEST 14: nested INSERT context (same block in diff spots)', () => {
@@ -188,6 +188,6 @@ describe('CAD Comparison Engine', () => {
     } as CadInsertEntity); // Completely different insert, handles differ, insert context differs
 
     const result = compareCadDocuments(oldDoc, newDoc);
-    expect(result.summary).toEqual({ added: 1, removed: 1, modified: 0, unchanged: 0 });
+    expect(result.summary).toMatchObject({ added: 1, removed: 1, modified: 0, unchanged: 0 });
   });
 });

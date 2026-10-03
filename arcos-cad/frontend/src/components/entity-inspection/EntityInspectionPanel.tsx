@@ -31,6 +31,7 @@ export const EntityInspectionPanel: React.FC<Props> = ({ data, onClose }) => {
       <div className="cad-ins-content">
         <div className="cad-ins-section">
           <div className="cad-ins-section-title">GENERAL</div>
+          {data.changeStatus && data.changeStatus !== 'UNCHANGED' && renderRow('Status', data.changeStatus)}
           {renderRow('Layer', data.layer)}
           {renderRow('Space', data.space === 'layout' ? 'Layout' : 'Model')}
         </div>

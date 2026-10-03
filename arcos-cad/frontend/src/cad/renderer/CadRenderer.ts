@@ -190,6 +190,7 @@ export class CadRenderer {
   public hoverDelayMs = 200;
   private hoverOverlayGroup = new THREE.Group();
   private comparisonOverlayGroup = new THREE.Group();
+  private comparisonRegionsGroup = new THREE.Group();
   private currentHoverRef: SelectionReference | null = null;
   private hoverTimer: number | null = null;
   private currentChangeFocusGroup = new THREE.Group();
@@ -271,6 +272,10 @@ export class CadRenderer {
     this.comparisonOverlayGroup.name = 'comparisonOverlayGroup';
     this.comparisonOverlayGroup.renderOrder = 997;
     this.scene.add(this.comparisonOverlayGroup);
+
+    this.comparisonRegionsGroup.name = 'comparisonRegionsGroup';
+    this.comparisonRegionsGroup.renderOrder = 996;
+    this.scene.add(this.comparisonRegionsGroup);
 
     this.currentChangeFocusGroup.name = 'currentChangeFocusGroup';
     this.currentChangeFocusGroup.renderOrder = 9999;
@@ -2715,6 +2720,86 @@ fitToDrawing: true
     this.markDirty();
   }
 
+  public setComparisonRegions(regions: any[]) {
+      while (this.comparisonRegionsGroup.children.length > 0) {
+        const child = this.comparisonRegionsGroup.children[0];
+        this.comparisonRegionsGroup.remove(child);
+        if ((child as THREE.Mesh).geometry) ((child as THREE.Mesh).geometry as THREE.BufferGeometry).dispose();
+        if ((child as THREE.Mesh).material) {
+          if (Array.isArray((child as THREE.Mesh).material)) {
+            ((child as THREE.Mesh).material as THREE.Material[]).forEach(m => m.dispose());
+          } else {
+            ((child as THREE.Mesh).material as THREE.Material).dispose();
+          }
+        }
+      }
+
+      if (!regions || regions.length === 0) {
+          this.markDirty();
+          return;
+      }
+
+      const getArcPoints = (p1: THREE.Vector3, p2: THREE.Vector3, numPoints: number) => {
+          const points: number[] = [];
+          const center = new THREE.Vector3().addVectors(p1, p2).multiplyScalar(0.5);
+          const radius = p1.distanceTo(p2) / 2;
+          const dir = new THREE.Vector3().subVectors(p2, p1).normalize();
+          const normal = new THREE.Vector3(-dir.y, dir.x, 0).normalize();
+          
+          for (let i = 0; i <= numPoints; i++) {
+              const t = i / numPoints;
+              const angle = Math.PI * t;
+              // Semicircle pointing outwards along normal
+              const offset = normal.clone().multiplyScalar(Math.sin(angle) * radius);
+              const base = new THREE.Vector3().lerpVectors(p1, p2, t);
+              const p = base.add(offset);
+              points.push(p.x, p.y, p.z);
+          }
+          return points;
+      };
+
+      for (const region of regions) {
+          const color = 0x3498db; // Blue for clouds, or maybe dependent on region changes
+          let regionColor = color;
+          if (region.summary.added > 0 && region.summary.removed === 0 && region.summary.modified === 0) regionColor = 0x2ecc71; // Green
+          else if (region.summary.removed > 0 && region.summary.added === 0 && region.summary.modified === 0) regionColor = 0xe74c3c; // Red
+          else if (region.summary.modified > 0 && region.summary.added === 0 && region.summary.removed === 0) regionColor = 0xf1c40f; // Yellow
+
+          const { minX, minY, maxX, maxY } = region.bounds;
+          
+          const corners = [
+              new THREE.Vector3(minX, minY, 0),
+              new THREE.Vector3(maxX, minY, 0),
+              new THREE.Vector3(maxX, maxY, 0),
+              new THREE.Vector3(minX, maxY, 0)
+          ];
+
+          const linePoints: number[] = [];
+          const segmentsPerSide = 5;
+
+          for (let i = 0; i < 4; i++) {
+              const pStart = corners[i];
+              const pEnd = corners[(i + 1) % 4];
+              for (let j = 0; j < segmentsPerSide; j++) {
+                  const s = new THREE.Vector3().lerpVectors(pStart, pEnd, j / segmentsPerSide);
+                  const e = new THREE.Vector3().lerpVectors(pStart, pEnd, (j + 1) / segmentsPerSide);
+                  const arc = getArcPoints(s, e, 8);
+                  linePoints.push(...arc);
+              }
+          }
+
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute('position', new THREE.Float32BufferAttribute(linePoints, 3));
+          const mat = new THREE.LineBasicMaterial({ color: regionColor, linewidth: 2, depthTest: false, depthWrite: false });
+          const line = new THREE.Line(geom, mat);
+          line.renderOrder = 996;
+          this.comparisonRegionsGroup.add(line);
+      }
+
+      this.markDirty();
+  }
+
+
   public setComparisonHighlights(changes: ComparisonChange[], side: 'OLD' | 'NEW') {
     TIMING.mark('T20');
     this.clearComparisonHighlights();
@@ -2738,107 +2823,122 @@ fitToDrawing: true
       return;
     }
 
-    const highlightColor = side === 'OLD' ? COMPARISON_COLORS.REMOVED : COMPARISON_COLORS.ADDED;
-
-    const ctx = {
-      lines: [] as number[],
-      colors: [] as number[],
-      instanceIds: [] as number[],
-      hatchPositions: [] as number[],
-      hatchIndices: [] as number[],
-      hatchColors: [] as number[],
-      hatchInstanceIds: [] as number[],
-      hatchCurrentIndexOffset: 0,
-      textMeshes: [] as THREE.Mesh[],
-      arrowheadMeshes: [] as THREE.Object3D[],
-      stats: { arcs: 0, ellipses: 0, points: 0, dimensions: 0, leaders: 0, mleaders: 0, arcDimensions: 0, mtexts: 0 }
-    };
-    const getContext = () => (ctx as any);
-
+    // We will render geometries grouped by color
+    const colorGroups = new Map<number, typeof activeChanges>();
+    
     for (const change of activeChanges) {
-      const ref = side === 'OLD' ? change.oldEntity : change.newEntity;
-      if (!ref) continue;
-      
-      const entity = this.findEntityById(ref.entityId);
-      if (!entity) continue;
-      
-      const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined, this.activeDoc?.blocks);
-      
-      this.processEntities([entity], parentMatrix, this.activeDoc, 0, getContext, ctx.stats as any, {}, [], ref.space, (ref as any).viewportId);
-    }
-
-    if (ctx.lines.length > 0) {
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.lines, 3));
-      const mat = new THREE.LineBasicMaterial({
-        color: highlightColor,
-        depthTest: false,
-        depthWrite: false
-      });
-      const lines = new THREE.LineSegments(geom, mat);
-      lines.renderOrder = 997;
-      this.comparisonOverlayGroup.add(lines);
-    }
-
-    if (ctx.hatchPositions.length > 0) {
-      const geom = new THREE.BufferGeometry();
-      geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.hatchPositions, 3));
-      geom.setIndex(ctx.hatchIndices);
-      const mat = new THREE.MeshBasicMaterial({
-        color: highlightColor,
-        side: THREE.DoubleSide,
-        depthTest: false,
-        depthWrite: false,
-        transparent: true,
-        opacity: 0.7
-      });
-      const mesh = new THREE.Mesh(geom, mat);
-      mesh.renderOrder = 997;
-      this.comparisonOverlayGroup.add(mesh);
-    }
-
-    for (const mesh of ctx.textMeshes) {
-        mesh.geometry.computeBoundingBox();
-        const bbox = mesh.geometry.boundingBox;
-        if (bbox) {
-            const width = bbox.max.x - bbox.min.x;
-            const height = bbox.max.y - bbox.min.y;
-            const center = new THREE.Vector3();
-            bbox.getCenter(center);
-            
-            const planeGeom = new THREE.PlaneGeometry(width, height);
-            const mat = new THREE.MeshBasicMaterial({
-                color: highlightColor,
-                side: THREE.DoubleSide,
-                depthTest: false,
-                depthWrite: false,
-                transparent: true,
-                opacity: 0.7
-            });
-            const plane = new THREE.Mesh(planeGeom, mat);
-            plane.position.copy(center);
-            plane.quaternion.copy(mesh.quaternion);
-            plane.renderOrder = 997;
-            this.comparisonOverlayGroup.add(plane);
+        let color = COMPARISON_COLORS.UNCHANGED;
+        if (change.changeType === 'ADDED') color = COMPARISON_COLORS.ADDED;
+        else if (change.changeType === 'REMOVED') color = COMPARISON_COLORS.REMOVED;
+        else if (change.changeType === 'MODIFIED') color = COMPARISON_COLORS.MODIFIED;
+        
+        if (!colorGroups.has(color)) {
+            colorGroups.set(color, []);
         }
+        colorGroups.get(color)!.push(change);
     }
 
-    for (const obj of ctx.arrowheadMeshes) {
-        // obj is an Object3D containing the actual arrowhead Mesh
-        obj.traverse((child) => {
-            if (child instanceof THREE.Mesh) {
-                // We create a new material with the highlight color
-                child.material = new THREE.MeshBasicMaterial({
+    for (const [highlightColor, groupChanges] of colorGroups.entries()) {
+        const ctx = {
+          lines: [] as number[],
+          colors: [] as number[],
+          instanceIds: [] as number[],
+          hatchPositions: [] as number[],
+          hatchIndices: [] as number[],
+          hatchColors: [] as number[],
+          hatchInstanceIds: [] as number[],
+          hatchCurrentIndexOffset: 0,
+          textMeshes: [] as THREE.Mesh[],
+          arrowheadMeshes: [] as THREE.Object3D[],
+          stats: { arcs: 0, ellipses: 0, points: 0, dimensions: 0, leaders: 0, mleaders: 0, arcDimensions: 0, mtexts: 0 }
+        };
+        const getContext = () => (ctx as any);
+
+        for (const change of groupChanges) {
+          const ref = side === 'OLD' ? change.oldEntity : change.newEntity;
+          if (!ref) continue;
+          
+          const entity = this.findEntityById(ref.entityId);
+          if (!entity) continue;
+          
+          const parentMatrix = CadTransformResolver.resolveTransformWithLookup(ref.insertPath, (id) => this.findEntityById(id) || undefined, this.activeDoc?.blocks);
+          
+          this.processEntities([entity], parentMatrix, this.activeDoc, 0, getContext, ctx.stats as any, {}, [], ref.space, (ref as any).viewportId);
+        }
+
+        if (ctx.lines.length > 0) {
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.lines, 3));
+          const mat = new THREE.LineBasicMaterial({
+            color: highlightColor,
+            depthTest: false,
+            depthWrite: false
+          });
+          const lines = new THREE.LineSegments(geom, mat);
+          lines.renderOrder = 997;
+          this.comparisonOverlayGroup.add(lines);
+        }
+
+        if (ctx.hatchPositions.length > 0) {
+          const geom = new THREE.BufferGeometry();
+          geom.setAttribute('position', new THREE.Float32BufferAttribute(ctx.hatchPositions, 3));
+          geom.setIndex(ctx.hatchIndices);
+          const mat = new THREE.MeshBasicMaterial({
+            color: highlightColor,
+            side: THREE.DoubleSide,
+            depthTest: false,
+            depthWrite: false,
+            transparent: true,
+            opacity: 0.7
+          });
+          const mesh = new THREE.Mesh(geom, mat);
+          mesh.renderOrder = 997;
+          this.comparisonOverlayGroup.add(mesh);
+        }
+
+        for (const mesh of ctx.textMeshes) {
+            mesh.geometry.computeBoundingBox();
+            const bbox = mesh.geometry.boundingBox;
+            if (bbox) {
+                const width = bbox.max.x - bbox.min.x;
+                const height = bbox.max.y - bbox.min.y;
+                const center = new THREE.Vector3();
+                bbox.getCenter(center);
+                
+                const planeGeom = new THREE.PlaneGeometry(width, height);
+                const mat = new THREE.MeshBasicMaterial({
                     color: highlightColor,
                     side: THREE.DoubleSide,
                     depthTest: false,
-                    depthWrite: false
+                    depthWrite: false,
+                    transparent: true,
+                    opacity: 0.7
                 });
-                child.renderOrder = 997;
+                const plane = new THREE.Mesh(planeGeom, mat);
+                plane.position.copy(center);
+                plane.quaternion.copy(mesh.quaternion);
+                plane.renderOrder = 997;
+                this.comparisonOverlayGroup.add(plane);
             }
-        });
-        this.comparisonOverlayGroup.add(obj);
+        }
+
+        for (const obj of ctx.arrowheadMeshes) {
+            obj.traverse((child) => {
+                if (child instanceof THREE.Mesh) {
+                    child.material = new THREE.MeshBasicMaterial({
+                        color: highlightColor,
+                        side: THREE.DoubleSide,
+                        depthTest: false,
+                        depthWrite: false
+                    });
+                    child.renderOrder = 997;
+                }
+            });
+            this.comparisonOverlayGroup.add(obj);
+        }
     }
+
+
 
     TIMING.mark('T21');
     setTimeout(() => TIMING.mark('T22'), 0);
@@ -3083,6 +3183,31 @@ fitToDrawing: true
 
   public getContainer(): HTMLDivElement {
     return this.container;
+  }
+
+  public setTransparentBackground(transparent: boolean) {
+    this.renderer.setClearColor(0x1e1e1e, transparent ? 0 : 1);
+    this.markDirty();
+  }
+
+  public getRendererElement(): HTMLCanvasElement {
+    return this.renderer.domElement;
+  }
+
+  public getDocumentBounds(): { minX: number, minY: number, maxX: number, maxY: number } | null {
+    if (this.docBoundsMin && this.docBoundsMax) {
+      return {
+        minX: this.docBoundsMin[0],
+        minY: this.docBoundsMin[1],
+        maxX: this.docBoundsMax[0],
+        maxY: this.docBoundsMax[1]
+      };
+    }
+    return null;
+  }
+
+  public getWorldPointFromScreen(clientX: number, clientY: number): THREE.Vector3 {
+      return this.picker.getWorldPointFromScreen(clientX, clientY);
   }
 
   public dispose() {
