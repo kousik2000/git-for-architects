@@ -4,6 +4,10 @@ import { CadViewer } from '../cad-viewer/CadViewer';
 import { ComparisonNavigationController } from '../../comparison/navigation/ComparisonNavigationController';
 import { ChangeList } from './ChangeList';
 import { ChangeRegionManager } from '../../comparison/utils/ChangeRegionManager';
+import { StatisticsPanel } from '../statistics-panel/StatisticsPanel';
+import { LayerPanel } from '../layer-panel/LayerPanel';
+import { CadSettingsMenu } from '../cad-settings/CadSettingsMenu';
+import { defaultCadConfiguration } from '../../cad/config/default-cad-configuration';
 
 import { TIMING } from '../../comparison/performance/timingLogger';
 
@@ -78,6 +82,45 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
   const [fullscreenPane, setFullscreenPane] = useState<'none' | 'old' | 'new'>('none');
   const [viewMode, setViewMode] = useState<'side-by-side' | 'overlay'>('side-by-side');
 
+  // Overlay Header States
+  const [showOverlayStats, setShowOverlayStats] = useState(false);
+  const [showOverlayLayers, setShowOverlayLayers] = useState(false);
+  const [overlayLayerVisibility, setOverlayLayerVisibility] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    session.newCadJson.layers?.forEach(l => init[l.name] = l.visible && !l.frozen);
+    return init;
+  });
+  const [overlayConfig, setOverlayConfig] = useState(defaultCadConfiguration);
+
+  const handleToggleOverlayLayer = (layerName: string, visible: boolean) => {
+    setOverlayLayerVisibility(prev => ({ ...prev, [layerName]: visible }));
+    navigationControllerRef.current.getOldRenderer()?.setLayerVisibility(layerName, visible);
+    navigationControllerRef.current.getNewRenderer()?.setLayerVisibility(layerName, visible);
+  };
+
+  const combinedLayers = React.useMemo(() => {
+    const layersMap = new Map<string, any>();
+    session.oldCadJson.layers?.forEach(l => layersMap.set(l.name, l));
+    session.newCadJson.layers?.forEach(l => {
+       if (!layersMap.has(l.name)) layersMap.set(l.name, l);
+    });
+    return Array.from(layersMap.values());
+  }, [session.oldCadJson.layers, session.newCadJson.layers]);
+
+  const handleToggleAllOverlayLayers = (visible: boolean) => {
+    const newVis: Record<string, boolean> = {};
+    combinedLayers.forEach(l => {
+      if (!l.frozen) {
+        newVis[l.name] = visible;
+        navigationControllerRef.current.getOldRenderer()?.setLayerVisibility(l.name, visible);
+        navigationControllerRef.current.getNewRenderer()?.setLayerVisibility(l.name, visible);
+      } else {
+        newVis[l.name] = false;
+      }
+    });
+    setOverlayLayerVisibility(newVis);
+  };
+
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -88,6 +131,16 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Recalculate dimensions and sync layout when view mode or fullscreen changes
+  React.useEffect(() => {
+    setTimeout(() => {
+      navigationControllerRef.current.getOldRenderer()?.handleResize();
+      navigationControllerRef.current.getNewRenderer()?.handleResize();
+      if (viewMode === 'side-by-side') {
+        navigationControllerRef.current.syncViews();
+      }
+    }, 50);
+  }, [viewMode, fullscreenPane]);
 
   React.useEffect(() => {
     if (viewMode !== 'overlay') return;
@@ -197,37 +250,7 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
               Overlay
             </button>
           </div>
-          {viewMode === 'overlay' && (
-            <div style={{ display: 'flex', gap: '0.5rem', background: '#34495e', padding: '0.2rem', borderRadius: '4px' }}>
-              {session.newCadJson.layouts && Object.keys(session.newCadJson.layouts).length > 0 && (
-                <select
-                  style={{ background: 'transparent', color: 'white', border: '1px solid #bdc3c7', borderRadius: '4px', padding: '0.2rem 0.5rem' }}
-                  onChange={(e) => {
-                    const space = e.target.value;
-                    navigationControllerRef.current.getOldRenderer()?.setCurrentSpace(space === 'model' ? {type: 'model'} : {type: 'layout', name: space});
-                    navigationControllerRef.current.getNewRenderer()?.setCurrentSpace(space === 'model' ? {type: 'model'} : {type: 'layout', name: space});
-                  }}
-                >
-                  <option value="model" style={{ color: 'black' }}>Modelspace</option>
-                  {Object.keys(session.newCadJson.layouts).map(lName => (
-                    <option key={lName} value={lName} style={{ color: 'black' }}>Layout: {lName}</option>
-                  ))}
-                </select>
-              )}
-              <button 
-                onClick={() => navigationControllerRef.current.fitToCombinedBounds()}
-                style={{ background: 'transparent', border: '1px solid #bdc3c7', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                Fit
-              </button>
-              <button 
-                onClick={() => setFullscreenPane(fullscreenPane === 'new' ? 'none' : 'new')}
-                style={{ background: 'transparent', border: '1px solid #bdc3c7', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '4px', cursor: 'pointer', fontSize: '0.85rem' }}
-              >
-                {fullscreenPane === 'new' ? 'Exit Full View' : 'Full View'}
-              </button>
-            </div>
-          )}
+
         </div>
         <button 
           onClick={onClose} 
@@ -241,24 +264,15 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
       <div style={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0 }}>
         
         {/* CAD VIEWERS (Left) */}
-        <div style={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0, position: 'relative' }}>
-          {/* OLD PANE */}
-          <div style={{ 
-            flex: viewMode === 'overlay' ? 'none' : 1, 
-            width: viewMode === 'overlay' ? '100%' : (fullscreenPane === 'old' ? '100%' : '50%'), 
-            minWidth: 0, 
-            borderRight: (viewMode === 'overlay' || fullscreenPane === 'old') ? 'none' : '2px solid #34495e', 
-            display: fullscreenPane === 'new' ? 'none' : 'flex', 
-            flexDirection: 'column', 
-            position: viewMode === 'overlay' ? 'absolute' : 'relative',
-            inset: viewMode === 'overlay' ? 0 : 'auto',
-            zIndex: 1
-          }}>
-            {viewMode !== 'overlay' && (
-              <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', minHeight: 0, minWidth: 0, position: 'relative', flexDirection: viewMode === 'overlay' ? 'column' : 'row' }}>
+          
+          {viewMode === 'overlay' && (
+            <>
+              {/* Overlay File Context Header */}
+              <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <div>
-                  <span>Previous / Old</span>
-                  <span style={{ color: '#7f8c8d', fontSize: '0.9rem', marginLeft: '0.5rem' }}>{session.oldFileName}</span>
+                  <span>Comparison Overlay</span>
+                  <span style={{ color: '#7f8c8d', fontSize: '0.9rem', marginLeft: '0.5rem' }}>{session.oldFileName} vs {session.newFileName}</span>
                 </div>
                 <button 
                   onClick={() => setFullscreenPane(fullscreenPane === 'old' ? 'none' : 'old')}
@@ -267,58 +281,168 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
                   {fullscreenPane === 'old' ? 'Exit Full View' : 'Full View'}
                 </button>
               </div>
-            )}
-            <div style={{ flex: 1, position: 'relative' }}>
-              {/* The underlying CadViewer handles its own full size relative to its parent container. We pass a no-op onClose because the header handles it. */}
-              <CadViewer 
-                document={session.oldCadJson} 
-                comparisonChanges={allChanges}
-                comparisonRegions={comparisonRegions}
-                comparisonSide="OLD"
-                navigationController={navigationControllerRef.current}
-                transparentBackground={false}
-                hideHeader={viewMode === 'overlay'}
-              />
-            </div>
-          </div>
 
-          {/* NEW PANE */}
-          <div style={{ 
-            flex: viewMode === 'overlay' ? 'none' : 1, 
-            width: viewMode === 'overlay' ? '100%' : (fullscreenPane === 'new' ? '100%' : '50%'), 
-            minWidth: 0, 
-            display: fullscreenPane === 'old' ? 'none' : 'flex', 
-            flexDirection: 'column', 
-            position: viewMode === 'overlay' ? 'absolute' : 'relative',
-            inset: viewMode === 'overlay' ? 0 : 'auto',
-            zIndex: 2,
-            opacity: viewMode === 'overlay' ? 0.8 : 1 // Opacity for base geometry overlap visibility
-          }}>
-            {viewMode !== 'overlay' && (
-              <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <span>Current / New</span>
-                  <span style={{ color: '#7f8c8d', fontSize: '0.9rem', marginLeft: '0.5rem' }}>{session.newFileName}</span>
+              {/* Overlay CAD Viewer Header */}
+              <div className="cad-viewer-header" style={{ position: 'relative', zIndex: 10, flexShrink: 0 }}>
+                <div className="cad-viewer-toolbar">
+                  <div className="cad-viewer-brand" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" strokeWidth="2" fill="none"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                    ARCOS CAD VIEWER
+                  </div>
+                  <div className="cad-viewer-controls">
+                    {session.newCadJson.layouts && Object.keys(session.newCadJson.layouts).length > 0 && (
+                      <select
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid #555', background: '#3a3a3a', color: '#ddd', fontSize: '12px' }}
+                        onChange={(e) => {
+                          const space = e.target.value;
+                          navigationControllerRef.current.getOldRenderer()?.renderSpace(space === 'model' ? 'model' : 'layout', space === 'model' ? undefined : space);
+                          navigationControllerRef.current.getNewRenderer()?.renderSpace(space === 'model' ? 'model' : 'layout', space === 'model' ? undefined : space);
+                        }}
+                      >
+                        <option value="model">Modelspace</option>
+                        {Object.keys(session.newCadJson.layouts).map(lName => (
+                          <option key={lName} value={lName}>Layout: {lName}</option>
+                        ))}
+                      </select>
+                    )}
+                    <button onClick={() => setShowOverlayStats(!showOverlayStats)} className={`cad-ctrl-btn${showOverlayStats ? ' cad-ctrl-btn--active' : ''}`} style={{ background: showOverlayStats ? '#555' : '' }}>Stats</button>
+                    <button onClick={() => setShowOverlayLayers(!showOverlayLayers)} className={`cad-ctrl-btn${showOverlayLayers ? ' cad-ctrl-btn--active' : ''}`} style={{ background: showOverlayLayers ? '#555' : '' }}>Layers</button>
+                    <button onClick={() => navigationControllerRef.current.fitToCombinedBounds()} className="cad-ctrl-btn">Fit</button>
+                    <button onClick={() => {}} className="cad-ctrl-btn" style={{ opacity: 0.5 }}>Settings</button>
+                  </div>
                 </div>
-                <button 
-                  onClick={() => setFullscreenPane(fullscreenPane === 'new' ? 'none' : 'new')}
-                  style={{ background: 'white', border: '1px solid #bdc3c7', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+              </div>
+            </>
+          )}
+
+          {/* Canvas Wrapper */}
+          <div style={{ flex: 1, position: 'relative', display: 'flex', flexDirection: viewMode === 'overlay' ? 'column' : 'row', minWidth: 0, minHeight: 0 }}>
+            
+            {/* OVERLAY POPUPS (Moved into Canvas Wrapper to be correctly positioned over canvases) */}
+            {viewMode === 'overlay' && showOverlayStats && (
+              <>
+                <div 
+                  style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}
+                  onPointerDown={e => e.stopPropagation()}
+                  onPointerUp={e => e.stopPropagation()}
+                  onPointerMove={e => e.stopPropagation()}
+                  onWheel={e => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
                 >
-                  {fullscreenPane === 'new' ? 'Exit Full View' : 'Full View'}
-                </button>
+                  <div style={{ position: 'absolute', top: '-6px', left: '12px', background: '#34495e', color: 'white', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold', borderTopLeftRadius: '4px', borderTopRightRadius: '4px', zIndex: 101, border: '1px solid #3a3a3a', borderBottom: 'none' }}>Old / Previous DWG</div>
+                  <StatisticsPanel document={session.oldCadJson} onClose={() => setShowOverlayStats(false)} />
+                </div>
+                <div 
+                  style={{ position: 'absolute', top: '10px', left: '270px', zIndex: 10 }}
+                  onPointerDown={e => e.stopPropagation()}
+                  onPointerUp={e => e.stopPropagation()}
+                  onPointerMove={e => e.stopPropagation()}
+                  onWheel={e => e.stopPropagation()}
+                  onClick={e => e.stopPropagation()}
+                >
+                  <div style={{ position: 'absolute', top: '-6px', left: '12px', background: '#34495e', color: 'white', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold', borderTopLeftRadius: '4px', borderTopRightRadius: '4px', zIndex: 101, border: '1px solid #3a3a3a', borderBottom: 'none' }}>New / Current DWG</div>
+                  <StatisticsPanel document={session.newCadJson} onClose={() => setShowOverlayStats(false)} />
+                </div>
+              </>
+            )}
+            {viewMode === 'overlay' && showOverlayLayers && (
+              <div 
+                style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}
+                onPointerDown={e => e.stopPropagation()}
+                onPointerUp={e => e.stopPropagation()}
+                onPointerMove={e => e.stopPropagation()}
+                onWheel={e => e.stopPropagation()}
+                onClick={e => e.stopPropagation()}
+              >
+                <LayerPanel 
+                  layers={combinedLayers}
+                  visibilityState={overlayLayerVisibility}
+                  onToggleLayer={handleToggleOverlayLayer}
+                  onToggleAll={handleToggleAllOverlayLayers}
+                  onClose={() => setShowOverlayLayers(false)}
+                />
               </div>
             )}
-            <div style={{ flex: 1, position: 'relative' }}>
-              <CadViewer 
-                document={session.newCadJson} 
-                onClose={() => {}} 
-                comparisonChanges={allChanges}
-                comparisonRegions={comparisonRegions}
-                comparisonSide="NEW"
-                navigationController={navigationControllerRef.current}
-                transparentBackground={viewMode === 'overlay'}
-                hideHeader={viewMode === 'overlay'}
-              />
+
+            {/* OLD PANE */}
+            <div style={{ 
+              flex: viewMode === 'overlay' ? 'none' : (fullscreenPane === 'old' ? '1 1 100%' : '1 1 0'), 
+              width: viewMode === 'overlay' ? '100%' : 'auto', 
+              minWidth: 0, 
+              overflow: 'hidden',
+              borderRight: (viewMode === 'overlay' || fullscreenPane === 'old') ? 'none' : '2px solid #34495e', 
+              display: fullscreenPane === 'new' ? 'none' : 'flex', 
+              flexDirection: 'column', 
+              position: viewMode === 'overlay' ? 'absolute' : 'relative',
+              inset: viewMode === 'overlay' ? 0 : 'auto',
+              zIndex: 1
+            }}>
+              {viewMode !== 'overlay' && (
+                <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span>Previous / Old</span>
+                    <span style={{ color: '#7f8c8d', fontSize: '0.9rem', marginLeft: '0.5rem' }}>{session.oldFileName}</span>
+                  </div>
+                  <button 
+                    onClick={() => setFullscreenPane(fullscreenPane === 'old' ? 'none' : 'old')}
+                    style={{ background: 'white', border: '1px solid #bdc3c7', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    {fullscreenPane === 'old' ? 'Exit Full View' : 'Full View'}
+                  </button>
+                </div>
+              )}
+              <div style={{ flex: 1, position: 'relative' }}>
+                <CadViewer 
+                  document={session.oldCadJson} 
+                  comparisonChanges={allChanges}
+                  comparisonRegions={comparisonRegions}
+                  comparisonSide="OLD"
+                  navigationController={navigationControllerRef.current}
+                  transparentBackground={false}
+                  hideHeader={viewMode === 'overlay'}
+                />
+              </div>
+            </div>
+
+            {/* NEW PANE */}
+            <div style={{ 
+              flex: viewMode === 'overlay' ? 'none' : (fullscreenPane === 'new' ? '1 1 100%' : '1 1 0'), 
+              width: viewMode === 'overlay' ? '100%' : 'auto', 
+              minWidth: 0, 
+              overflow: 'hidden',
+              display: fullscreenPane === 'old' ? 'none' : 'flex', 
+              flexDirection: 'column', 
+              position: viewMode === 'overlay' ? 'absolute' : 'relative',
+              inset: viewMode === 'overlay' ? 0 : 'auto',
+              zIndex: 2,
+              opacity: viewMode === 'overlay' ? 0.8 : 1 // Opacity for base geometry overlap visibility
+            }}>
+              {viewMode !== 'overlay' && (
+                <div style={{ background: '#ecf0f1', padding: '0.5rem 1rem', borderBottom: '1px solid #bdc3c7', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span>Current / New</span>
+                    <span style={{ color: '#7f8c8d', fontSize: '0.9rem', marginLeft: '0.5rem' }}>{session.newFileName}</span>
+                  </div>
+                  <button 
+                    onClick={() => setFullscreenPane(fullscreenPane === 'new' ? 'none' : 'new')}
+                    style={{ background: 'white', border: '1px solid #bdc3c7', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem' }}
+                  >
+                    {fullscreenPane === 'new' ? 'Exit Full View' : 'Full View'}
+                  </button>
+                </div>
+              )}
+              <div style={{ flex: 1, position: 'relative' }}>
+                <CadViewer 
+                  document={session.newCadJson} 
+                  onClose={() => {}} 
+                  comparisonChanges={allChanges}
+                  comparisonRegions={comparisonRegions}
+                  comparisonSide="NEW"
+                  navigationController={navigationControllerRef.current}
+                  transparentBackground={viewMode === 'overlay'}
+                  hideHeader={viewMode === 'overlay'}
+                />
+              </div>
             </div>
           </div>
         </div>

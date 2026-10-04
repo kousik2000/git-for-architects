@@ -1,5 +1,5 @@
 export const getApiBaseUrl = () => {
-  return localStorage.getItem('API_BASE_URL') || import.meta.env.VITE_API_BASE_URL || 'http://192.168.0.109:8000';
+  return localStorage.getItem('API_BASE_URL') || import.meta.env.VITE_API_BASE_URL || 'http://192.168.0.111:8000';
 };
 
 export class CadApiError extends Error {
@@ -32,7 +32,7 @@ export const cadApi = {
       if (!response.ok) {
         let code = 'NETWORK_ERROR';
         let message = 'An unexpected error occurred during conversion.';
-        
+
         try {
           // Attempt to parse JSON error from backend
           const errorData = await response.json();
@@ -51,7 +51,7 @@ export const cadApi = {
             message = 'An internal server error occurred while processing the file.';
           }
         }
-        
+
         throw new CadApiError(code, message);
       }
 
@@ -83,7 +83,7 @@ export const cadApi = {
       if (!response.ok) {
         let code = 'NETWORK_ERROR';
         let message = 'An unexpected error occurred during parsing.';
-        
+
         try {
           const errorData = await response.json();
           code = errorData.code || `HTTP_${response.status}`;
@@ -100,7 +100,7 @@ export const cadApi = {
             message = 'An internal server error occurred while processing the file.';
           }
         }
-        
+
         throw new CadApiError(code, message);
       }
 
@@ -108,7 +108,7 @@ export const cadApi = {
       if (!jsonResponse.success) {
         throw new CadApiError('PARSING_FAILED', 'Parsing succeeded via HTTP but returned failure status.');
       }
-      
+
       return jsonResponse.data;
     } catch (error) {
       if (error instanceof CadApiError) {

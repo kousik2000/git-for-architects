@@ -378,6 +378,10 @@ export class CadRenderer {
 
   public renderSpace(spaceType: 'model' | 'layout', layoutName?: string) {
     if (!this.activeDoc) return;
+    // @ts-ignore
+    this.activeSpace = spaceType;
+    // @ts-ignore
+    this.activeLayoutName = layoutName;
     
     // T12/T17: Geometry processing start
     if (this.comparisonSide === 'OLD') (window as any).COMPARISON_TIMING?.mark('T12');
@@ -522,6 +526,8 @@ export class CadRenderer {
     
     console.log(`[CadRenderer] renderSpace(${spaceType}, ${layoutName || ''}) time: ${(endTime - startTime).toFixed(2)}ms`);
     
+    this.updateComparisonRegionsVisibility();
+
     let bounds = undefined;
     if (spaceType === 'layout' && layoutName) {
       const layout = this.activeDoc.layouts[layoutName];
@@ -2793,9 +2799,20 @@ fitToDrawing: true
           const mat = new THREE.LineBasicMaterial({ color: regionColor, linewidth: 2, depthTest: false, depthWrite: false });
           const line = new THREE.Line(geom, mat);
           line.renderOrder = 996;
+          line.userData.space = region.space || 'model';
           this.comparisonRegionsGroup.add(line);
       }
 
+      this.updateComparisonRegionsVisibility();
+      this.markDirty();
+  }
+
+  private updateComparisonRegionsVisibility() {
+      // @ts-ignore
+      const activeSpaceStr = this.activeSpace === 'model' ? 'model' : (this.activeLayoutName || 'model');
+      for (const child of this.comparisonRegionsGroup.children) {
+          child.visible = (child.userData.space === activeSpaceStr);
+      }
       this.markDirty();
   }
 

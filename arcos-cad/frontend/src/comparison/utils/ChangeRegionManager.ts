@@ -9,6 +9,7 @@ export interface ChangeRegion {
         removed: number;
         modified: number;
     };
+    space: string;
 }
 
 export class ChangeRegionManager {
@@ -23,7 +24,7 @@ export class ChangeRegionManager {
         getBoundsFn: (ref: ComparisonEntityReference, side: 'OLD' | 'NEW') => { minX: number, minY: number, maxX: number, maxY: number } | null,
         threshold: number = 10.0
     ): ChangeRegion[] {
-        const boxes: { bounds: { minX: number, minY: number, maxX: number, maxY: number }, change: ComparisonChange }[] = [];
+        const boxes: { bounds: { minX: number, minY: number, maxX: number, maxY: number }, change: ComparisonChange, space: string }[] = [];
 
         // 1. Gather all bounding boxes
         for (const change of changes) {
@@ -53,6 +54,7 @@ export class ChangeRegionManager {
             }
 
             if (valid) {
+                const space = change.oldEntity?.space || change.newEntity?.space || 'model';
                 boxes.push({
                     bounds: {
                         minX: bMinX - threshold,
@@ -60,14 +62,12 @@ export class ChangeRegionManager {
                         maxX: bMaxX + threshold,
                         maxY: bMaxY + threshold
                     },
-                    change
+                    change,
+                    space
                 });
             }
         }
 
-        // 2. Simple iterative merging (O(N^2) worst case, but N is number of changes so it's usually small enough)
-        // If N is very large, a grid/hash-based approach is required. Let's implement a grid.
-        
         const regions: ChangeRegion[] = [];
         const merged = new Array(boxes.length).fill(false);
 
@@ -78,7 +78,8 @@ export class ChangeRegionManager {
                 id: `region-${i}`,
                 bounds: { ...boxes[i].bounds },
                 changes: [boxes[i].change],
-                summary: { added: 0, removed: 0, modified: 0 }
+                summary: { added: 0, removed: 0, modified: 0 },
+                space: boxes[i].space
             };
             
             merged[i] = true;
@@ -89,6 +90,7 @@ export class ChangeRegionManager {
                 expanded = false;
                 for (let j = 0; j < boxes.length; j++) {
                     if (merged[j]) continue;
+                    if (boxes[j].space !== currentRegion.space) continue;
                     
                     const b = boxes[j].bounds;
                     const r = currentRegion.bounds;
@@ -108,7 +110,7 @@ export class ChangeRegionManager {
                 }
             }
             
-            regions.push(currentRegion);
+            regions.push(currentRegion as any);
         }
 
         // Calculate summaries
