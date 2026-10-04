@@ -7,6 +7,7 @@ import { ChangeRegionManager } from '../../comparison/utils/ChangeRegionManager'
 import { StatisticsPanel } from '../statistics-panel/StatisticsPanel';
 import { LayerPanel } from '../layer-panel/LayerPanel';
 import { CadSettingsMenu } from '../cad-settings/CadSettingsMenu';
+import type { CadLayer } from '../../types/cad-json';
 import { defaultCadConfiguration } from '../../cad/config/default-cad-configuration';
 
 import { TIMING } from '../../comparison/performance/timingLogger';
@@ -88,17 +89,16 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
 
   const [overlayOldLayerVisibility, setOverlayOldLayerVisibility] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
-    session.oldCadJson.layers?.forEach(l => init[l.name] = l.visible && !l.frozen);
+    session.oldCadJson.layers?.forEach((l: CadLayer) => init[l.name] = l.visible && !l.frozen);
     return init;
   });
 
   const [overlayNewLayerVisibility, setOverlayNewLayerVisibility] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
-    session.newCadJson.layers?.forEach(l => init[l.name] = l.visible && !l.frozen);
+    session.newCadJson.layers?.forEach((l: CadLayer) => init[l.name] = l.visible && !l.frozen);
     return init;
   });
 
-  const [overlayConfig, setOverlayConfig] = useState(defaultCadConfiguration);
 
   const handleToggleOldLayer = (layerName: string, visible: boolean) => {
     setOverlayOldLayerVisibility(prev => ({ ...prev, [layerName]: visible }));
@@ -112,7 +112,7 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
 
   const handleToggleAllOldLayers = (visible: boolean) => {
     const newVis: Record<string, boolean> = {};
-    session.oldCadJson.layers?.forEach(l => {
+    session.oldCadJson.layers?.forEach((l: CadLayer) => {
       if (!l.frozen) {
         newVis[l.name] = visible;
         navigationControllerRef.current.getOldRenderer()?.setLayerVisibility(l.name, visible);
@@ -125,7 +125,7 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
 
   const handleToggleAllNewLayers = (visible: boolean) => {
     const newVis: Record<string, boolean> = {};
-    session.newCadJson.layers?.forEach(l => {
+    session.newCadJson.layers?.forEach((l: CadLayer) => {
       if (!l.frozen) {
         newVis[l.name] = visible;
         navigationControllerRef.current.getNewRenderer()?.setLayerVisibility(l.name, visible);
@@ -149,11 +149,8 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
   // Recalculate dimensions and sync layout when view mode or fullscreen changes
   React.useEffect(() => {
     setTimeout(() => {
-      navigationControllerRef.current.getOldRenderer()?.handleResize();
-      navigationControllerRef.current.getNewRenderer()?.handleResize();
-      if (viewMode === 'side-by-side') {
-        navigationControllerRef.current.syncViews();
-      }
+      (navigationControllerRef.current.getOldRenderer() as any)?.handleResize();
+      (navigationControllerRef.current.getNewRenderer() as any)?.handleResize();
     }, 50);
   }, [viewMode, fullscreenPane]);
 
