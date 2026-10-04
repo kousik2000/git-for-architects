@@ -85,40 +85,55 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
   // Overlay Header States
   const [showOverlayStats, setShowOverlayStats] = useState(false);
   const [showOverlayLayers, setShowOverlayLayers] = useState(false);
-  const [overlayLayerVisibility, setOverlayLayerVisibility] = useState<Record<string, boolean>>(() => {
+
+  const [overlayOldLayerVisibility, setOverlayOldLayerVisibility] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    session.oldCadJson.layers?.forEach(l => init[l.name] = l.visible && !l.frozen);
+    return init;
+  });
+
+  const [overlayNewLayerVisibility, setOverlayNewLayerVisibility] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     session.newCadJson.layers?.forEach(l => init[l.name] = l.visible && !l.frozen);
     return init;
   });
+
   const [overlayConfig, setOverlayConfig] = useState(defaultCadConfiguration);
 
-  const handleToggleOverlayLayer = (layerName: string, visible: boolean) => {
-    setOverlayLayerVisibility(prev => ({ ...prev, [layerName]: visible }));
+  const handleToggleOldLayer = (layerName: string, visible: boolean) => {
+    setOverlayOldLayerVisibility(prev => ({ ...prev, [layerName]: visible }));
     navigationControllerRef.current.getOldRenderer()?.setLayerVisibility(layerName, visible);
+  };
+
+  const handleToggleNewLayer = (layerName: string, visible: boolean) => {
+    setOverlayNewLayerVisibility(prev => ({ ...prev, [layerName]: visible }));
     navigationControllerRef.current.getNewRenderer()?.setLayerVisibility(layerName, visible);
   };
 
-  const combinedLayers = React.useMemo(() => {
-    const layersMap = new Map<string, any>();
-    session.oldCadJson.layers?.forEach(l => layersMap.set(l.name, l));
-    session.newCadJson.layers?.forEach(l => {
-       if (!layersMap.has(l.name)) layersMap.set(l.name, l);
-    });
-    return Array.from(layersMap.values());
-  }, [session.oldCadJson.layers, session.newCadJson.layers]);
-
-  const handleToggleAllOverlayLayers = (visible: boolean) => {
+  const handleToggleAllOldLayers = (visible: boolean) => {
     const newVis: Record<string, boolean> = {};
-    combinedLayers.forEach(l => {
+    session.oldCadJson.layers?.forEach(l => {
       if (!l.frozen) {
         newVis[l.name] = visible;
         navigationControllerRef.current.getOldRenderer()?.setLayerVisibility(l.name, visible);
+      } else {
+        newVis[l.name] = false;
+      }
+    });
+    setOverlayOldLayerVisibility(newVis);
+  };
+
+  const handleToggleAllNewLayers = (visible: boolean) => {
+    const newVis: Record<string, boolean> = {};
+    session.newCadJson.layers?.forEach(l => {
+      if (!l.frozen) {
+        newVis[l.name] = visible;
         navigationControllerRef.current.getNewRenderer()?.setLayerVisibility(l.name, visible);
       } else {
         newVis[l.name] = false;
       }
     });
-    setOverlayLayerVisibility(newVis);
+    setOverlayNewLayerVisibility(newVis);
   };
 
   React.useEffect(() => {
@@ -305,8 +320,26 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
                         ))}
                       </select>
                     )}
-                    <button onClick={() => setShowOverlayStats(!showOverlayStats)} className={`cad-ctrl-btn${showOverlayStats ? ' cad-ctrl-btn--active' : ''}`} style={{ background: showOverlayStats ? '#555' : '' }}>Stats</button>
-                    <button onClick={() => setShowOverlayLayers(!showOverlayLayers)} className={`cad-ctrl-btn${showOverlayLayers ? ' cad-ctrl-btn--active' : ''}`} style={{ background: showOverlayLayers ? '#555' : '' }}>Layers</button>
+                    <button 
+                      onClick={() => {
+                        setShowOverlayStats(!showOverlayStats);
+                        if (!showOverlayStats) setShowOverlayLayers(false);
+                      }} 
+                      className={`cad-ctrl-btn${showOverlayStats ? ' cad-ctrl-btn--active' : ''}`} 
+                      style={{ background: showOverlayStats ? '#555' : '' }}
+                    >
+                      Stats
+                    </button>
+                    <button 
+                      onClick={() => {
+                        setShowOverlayLayers(!showOverlayLayers);
+                        if (!showOverlayLayers) setShowOverlayStats(false);
+                      }} 
+                      className={`cad-ctrl-btn${showOverlayLayers ? ' cad-ctrl-btn--active' : ''}`} 
+                      style={{ background: showOverlayLayers ? '#555' : '' }}
+                    >
+                      Layers
+                    </button>
                     <button onClick={() => navigationControllerRef.current.fitToCombinedBounds()} className="cad-ctrl-btn">Fit</button>
                     <button onClick={() => {}} className="cad-ctrl-btn" style={{ opacity: 0.5 }}>Settings</button>
                   </div>
@@ -320,30 +353,20 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
             
             {/* OVERLAY POPUPS (Moved into Canvas Wrapper to be correctly positioned over canvases) */}
             {viewMode === 'overlay' && showOverlayStats && (
-              <>
-                <div 
-                  style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}
-                  onPointerDown={e => e.stopPropagation()}
-                  onPointerUp={e => e.stopPropagation()}
-                  onPointerMove={e => e.stopPropagation()}
-                  onWheel={e => e.stopPropagation()}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div style={{ position: 'absolute', top: '-6px', left: '12px', background: '#34495e', color: 'white', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold', borderTopLeftRadius: '4px', borderTopRightRadius: '4px', zIndex: 101, border: '1px solid #3a3a3a', borderBottom: 'none' }}>Old / Previous DWG</div>
-                  <StatisticsPanel document={session.oldCadJson} onClose={() => setShowOverlayStats(false)} />
-                </div>
-                <div 
-                  style={{ position: 'absolute', top: '10px', left: '270px', zIndex: 10 }}
-                  onPointerDown={e => e.stopPropagation()}
-                  onPointerUp={e => e.stopPropagation()}
-                  onPointerMove={e => e.stopPropagation()}
-                  onWheel={e => e.stopPropagation()}
-                  onClick={e => e.stopPropagation()}
-                >
-                  <div style={{ position: 'absolute', top: '-6px', left: '12px', background: '#34495e', color: 'white', padding: '2px 8px', fontSize: '11px', fontWeight: 'bold', borderTopLeftRadius: '4px', borderTopRightRadius: '4px', zIndex: 101, border: '1px solid #3a3a3a', borderBottom: 'none' }}>New / Current DWG</div>
-                  <StatisticsPanel document={session.newCadJson} onClose={() => setShowOverlayStats(false)} />
-                </div>
-              </>
+              <div 
+                style={{ position: 'absolute', top: '10px', left: '10px', zIndex: 10 }}
+                onPointerDown={e => e.stopPropagation()}
+                onPointerUp={e => e.stopPropagation()}
+                onPointerMove={e => e.stopPropagation()}
+                onWheel={e => e.stopPropagation()}
+                onClick={e => e.stopPropagation()}
+              >
+                <StatisticsPanel 
+                  document={session.oldCadJson} 
+                  newDocument={session.newCadJson}
+                  onClose={() => setShowOverlayStats(false)} 
+                />
+              </div>
             )}
             {viewMode === 'overlay' && showOverlayLayers && (
               <div 
@@ -355,10 +378,18 @@ export function ComparisonViewer({ session, onClose }: { session: ComparisonSess
                 onClick={e => e.stopPropagation()}
               >
                 <LayerPanel 
-                  layers={combinedLayers}
-                  visibilityState={overlayLayerVisibility}
-                  onToggleLayer={handleToggleOverlayLayer}
-                  onToggleAll={handleToggleAllOverlayLayers}
+                  layers={session.oldCadJson.layers || []}
+                  newLayers={session.newCadJson.layers || []}
+                  visibilityState={overlayOldLayerVisibility}
+                  newVisibilityState={overlayNewLayerVisibility}
+                  onToggleLayer={(name, vis, isNew) => {
+                    if (isNew) handleToggleNewLayer(name, vis);
+                    else handleToggleOldLayer(name, vis);
+                  }}
+                  onToggleAll={(vis, isNew) => {
+                    if (isNew) handleToggleAllNewLayers(vis);
+                    else handleToggleAllOldLayers(vis);
+                  }}
                   onClose={() => setShowOverlayLayers(false)}
                 />
               </div>

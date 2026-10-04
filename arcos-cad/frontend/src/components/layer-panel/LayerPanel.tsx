@@ -7,15 +7,19 @@ import './LayerPanel.css';
 
 interface LayerPanelProps {
   layers: CadLayer[];
+  newLayers?: CadLayer[];
   visibilityState: Record<string, boolean>;
-  onToggleLayer: (layerName: string, visible: boolean) => void;
-  onToggleAll: (visible: boolean) => void;
+  newVisibilityState?: Record<string, boolean>;
+  onToggleLayer: (layerName: string, visible: boolean, isNew?: boolean) => void;
+  onToggleAll: (visible: boolean, isNew?: boolean) => void;
   onClose: () => void;
 }
 
 export const LayerPanel: React.FC<LayerPanelProps> = ({ 
   layers, 
+  newLayers,
   visibilityState, 
+  newVisibilityState,
   onToggleLayer, 
   onToggleAll, 
   onClose 
@@ -35,26 +39,17 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
 
   const stopProp = (e: React.SyntheticEvent) => e.stopPropagation();
 
-  return (
-    <div
-      className="layer-panel"
-      onWheel={stopProp}
-    >
-      <div className="layer-panel-header">
-        <h3>Layers</h3>
-        <button className="layer-panel-close" onClick={onClose}>×</button>
-      </div>
-      
+  const renderLayerList = (list: CadLayer[], visState: Record<string, boolean>, isNew: boolean) => (
+    <>
       {canToggle && (
         <div className="layer-panel-actions">
-          <button onClick={() => onToggleAll(true)}>Show All</button>
-          <button onClick={() => onToggleAll(false)}>Hide All</button>
+          <button onClick={() => onToggleAll(true, isNew)}>Show All</button>
+          <button onClick={() => onToggleAll(false, isNew)}>Hide All</button>
         </div>
       )}
-
-      <div className="layer-panel-list">
-        {layers.map(layer => {
-          const isVisible = visibilityState[layer.name] ?? (layer.visible && !layer.frozen);
+      <div className="layer-panel-list" style={newLayers ? { minHeight: '150px' } : {}}>
+        {list.map(layer => {
+          const isVisible = visState[layer.name] ?? (layer.visible && !layer.frozen);
           const colorHex = getLayerColorHex(layer);
           
           return (
@@ -64,7 +59,7 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
                   type="checkbox" 
                   checked={isVisible}
                   disabled={!canToggle || layer.frozen}
-                  onChange={(e) => onToggleLayer(layer.name, e.target.checked)}
+                  onChange={(e) => onToggleLayer(layer.name, e.target.checked, isNew)}
                 />
                 <span className="layer-color-swatch" style={{ backgroundColor: colorHex }}></span>
                 <span className="layer-name">{layer.name}</span>
@@ -75,6 +70,42 @@ export const LayerPanel: React.FC<LayerPanelProps> = ({
           );
         })}
       </div>
+    </>
+  );
+
+  return (
+    <div
+      className="layer-panel"
+      onWheel={stopProp}
+      style={newLayers ? { 
+        maxHeight: '80vh', 
+        display: 'flex', 
+        flexDirection: 'column',
+        position: 'relative',
+        top: 0,
+        right: 0,
+        maxWidth: 'none'
+      } : {}}
+    >
+      <div className="layer-panel-header">
+        <h3>{newLayers ? 'Overlay Layers' : 'Layers'}</h3>
+        <button className="layer-panel-close" onClick={onClose}>×</button>
+      </div>
+      
+      {newLayers ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}>
+          <div>
+            <div style={{ color: '#85c1e9', fontSize: '11px', fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #333', paddingBottom: '4px', marginLeft: '12px', marginRight: '12px' }}>OLD / PREVIOUS</div>
+            {renderLayerList(layers, visibilityState, false)}
+          </div>
+          <div>
+            <div style={{ color: '#85c1e9', fontSize: '11px', fontWeight: 'bold', marginBottom: '8px', borderBottom: '1px solid #333', paddingBottom: '4px', marginLeft: '12px', marginRight: '12px' }}>NEW / CURRENT</div>
+            {renderLayerList(newLayers, newVisibilityState || {}, true)}
+          </div>
+        </div>
+      ) : (
+        renderLayerList(layers, visibilityState, false)
+      )}
     </div>
   );
 };
